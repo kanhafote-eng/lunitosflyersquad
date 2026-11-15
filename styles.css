@@ -203,3 +203,10 @@ html,html[data-theme=night],html[data-theme=day],body,html[data-theme=night] bod
 .view:not(:has(.map-world))>.card .mq-panel h2,.view:not(:has(.map-world))>.card .mq-panel p,.view:not(:has(.map-world))>.card .mq-panel .small,.view:not(:has(.map-world))>.card .mq-panel span,.view:not(:has(.map-world))>.card .mq-adv b,.view:not(:has(.map-world))>.card .mq-adv small{color:#0b1b6b!important}
 .mq-cost span{color:#0b1b6b!important}
 .view:not(:has(.map-world))>.card .player-code{color:#9ec8b2}.view:not(:has(.map-world))>.card .player-code strong{color:#f0c46c}
+
+/* Brighter night map and clearer pins (places without recent deliveries were grey and hard to see). */
+.map-world .leaflet-map{filter:grayscale(.2) sepia(.1) hue-rotate(145deg) saturate(.95) brightness(.9) contrast(1.05)}
+.map-world:before{background:linear-gradient(180deg,#050b129a 0%,transparent 16%,transparent 74%,#050b128a 100%),radial-gradient(ellipse at 50% 45%,transparent 45%,#02060966 100%)}
+.custom-pin.place.inactive span{filter:none;opacity:1;background:#5AB0FF;border-color:#fff;box-shadow:0 0 0 3px #5AB0FF66,0 4px 0 #0B1B6B}
+.custom-pin.place.active span{background:#FFD21F;border-color:#fff;box-shadow:0 0 0 4px #FFD21F88,0 4px 0 #0B1B6B,0 0 18px #FFD21F}
+.custom-pin.hq span{background:#FF5FB0!important;color:#fff;border-color:#fff}
