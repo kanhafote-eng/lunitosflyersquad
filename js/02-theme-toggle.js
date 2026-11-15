@@ -1,0 +1,1 @@
+document.addEventListener("click",function(e){var b=e.target.closest("[data-theme-toggle]");if(!b)return;var t=document.documentElement.dataset.theme==="day"?"night":"day";document.documentElement.dataset.theme=t;try{localStorage.setItem("mq-theme",t)}catch(x){}var m=document.querySelector("meta[name=theme-color]");if(m)m.content=t==="day"?"#1F4BFF":"#0B1B6B"});
