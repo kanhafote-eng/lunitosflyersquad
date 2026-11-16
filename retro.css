@@ -1,0 +1,133 @@
+/* MondQuest · anime retro-futurist skin (visual layer only). Loaded after styles.css. */
+html[data-theme]{--rf-ol:#1A1250;--rf-pink:#FF4FA3;--rf-cyan:#35E6FF;--rf-sun:#FFD21F;--rf-orange:#FF8A3D;--rf-violet:#9A6BFF;--rf-blue:#3D6BFF;--rf-mint:#4DE3A0}
+html[data-theme=night]{--rf-bg1:#0d0838;--rf-bg2:#2a1480;--rf-bg3:#7a1f9a;--rf-card1:#2a1d7a;--rf-card2:#171060;--rf-ink:#fff7e8;--rf-mut:#c9c3ff;--rf-edge:#35E6FF;--rf-shadow:#FF4FA3;--rf-grid:rgba(53,230,255,.35);--rf-halo:#fff}
+html[data-theme=day]{--rf-bg1:#ffe9c9;--rf-bg2:#ffc2d9;--rf-bg3:#a98cff;--rf-card1:#fffaf0;--rf-card2:#ffe9f4;--rf-ink:#1A1250;--rf-mut:#4a3f9a;--rf-edge:#1A1250;--rf-shadow:#3D6BFF;--rf-grid:rgba(61,107,255,.28);--rf-halo:#fff}
+.mq-i{width:1.25em;height:1.25em;vertical-align:-.28em;color:var(--rf-ol);flex:none;overflow:visible;filter:drop-shadow(0 0 1px var(--rf-halo)) drop-shadow(0 0 1px var(--rf-halo))}
+h1 .mq-i,h2 .mq-i{width:1em;height:1em}
+/* ---- backdrop: sunset, stars, perspective grid, scanlines ---- */
+html[data-theme] body{background:linear-gradient(180deg,var(--rf-bg1) 0%,var(--rf-bg2) 52%,var(--rf-bg3) 100%) fixed!important;color:var(--rf-ink);position:relative}
+body::before{content:"";position:fixed;left:-20%;right:-20%;bottom:0;height:34vh;z-index:0;pointer-events:none;opacity:.55;
+ background:linear-gradient(var(--rf-grid) 2px,transparent 2px) 0 0/100% 34px,linear-gradient(90deg,var(--rf-grid) 2px,transparent 2px) 0 0/54px 100%;transform:perspective(260px) rotateX(58deg);transform-origin:50% 100%;
+ -webkit-mask-image:linear-gradient(transparent,#000 70%);mask-image:linear-gradient(transparent,#000 70%)}
+body::after{content:"";position:fixed;inset:0;z-index:9999;pointer-events:none;opacity:.07;background:repeating-linear-gradient(0deg,#000 0 1px,transparent 1px 3px)}
+.topbar,#app>*{position:relative;z-index:1}
+/* ---- type: chunky anime title look ---- */
+h1,h2,.brand span{font-family:"Baloo 2","Trebuchet MS",system-ui,sans-serif!important;font-weight:900;letter-spacing:.2px}
+html[data-theme=night] h1{color:#fff7e8;text-shadow:3px 3px 0 var(--rf-pink),-1px -1px 0 var(--rf-ol),0 0 18px rgba(255,79,163,.55)}
+html[data-theme=night] h2{color:var(--rf-sun);text-shadow:2px 2px 0 var(--rf-ol)}
+html[data-theme=day] h1{color:var(--rf-ol);text-shadow:3px 3px 0 var(--rf-sun)}
+html[data-theme=day] h2{color:#c0246f}
+.eyebrow,.onboard-kicker,.onboard-step{font-family:ui-monospace,"Courier New",monospace;letter-spacing:.14em;text-transform:uppercase;color:var(--rf-edge)!important;font-weight:800}
+.eyebrow::before,.onboard-kicker::before{content:"// ";color:var(--rf-pink)}
+/* ---- panels: slanted-corner cel panels with hard shadow ---- */
+.card,.onboard-panel,.lunar-sheet,.news-panel,.mq-panel,.mq-card,.courier-card,.place-card{
+ background:linear-gradient(160deg,var(--rf-card1),var(--rf-card2))!important;color:var(--rf-ink)!important;
+ border:3px solid var(--rf-edge)!important;border-radius:6px 26px 6px 26px!important;
+ box-shadow:5px 6px 0 var(--rf-shadow),inset 0 0 0 2px var(--rf-ol),inset 0 0 30px rgba(255,255,255,.06)!important}
+.card p,.card li,.card label,.card small,.onboard-panel p{color:inherit}
+.card .small,.small{color:var(--rf-mut)!important}
+.onboard-panel{position:relative;overflow:hidden}
+.onboard-panel::before{content:"";position:absolute;right:-60px;top:-60px;width:200px;height:200px;border-radius:50%;background:radial-gradient(circle,var(--rf-sun) 0 38%,var(--rf-orange) 39% 60%,transparent 61%);opacity:.22;pointer-events:none}
+/* ---- buttons: glossy chrome pills ---- */
+.button,button.button{border:3px solid var(--rf-ol)!important;border-radius:999px!important;font-weight:900;letter-spacing:.3px;
+ background:linear-gradient(180deg,rgba(255,255,255,.5) 0 46%,rgba(255,255,255,0) 47%),linear-gradient(180deg,#5d86ff,#2b44c9)!important;color:#fff!important;
+ box-shadow:0 4px 0 var(--rf-ol),0 6px 14px rgba(0,0,0,.35)!important;text-shadow:0 1px 0 var(--rf-ol);transition:transform .08s,box-shadow .08s}
+.button.primary{background:linear-gradient(180deg,rgba(255,255,255,.65) 0 46%,rgba(255,255,255,0) 47%),linear-gradient(180deg,#ffe35a,#ff9d2e)!important;color:var(--rf-ol)!important;text-shadow:0 1px 0 rgba(255,255,255,.6)}
+.button.quiet{background:linear-gradient(180deg,rgba(255,255,255,.28) 0 46%,rgba(255,255,255,0) 47%),linear-gradient(180deg,#6a4fd6,#3a2a99)!important}
+.button:active{transform:translateY(3px);box-shadow:0 1px 0 var(--rf-ol)!important}
+.button:disabled{opacity:.45;filter:saturate(.4)}
+input,select,textarea{border:3px solid var(--rf-ol)!important;border-radius:14px!important;background:#fff8ea!important;color:var(--rf-ol)!important}
+/* ---- top bar, wallet, stash, nav ---- */
+.topbar{background:linear-gradient(180deg,rgba(13,8,56,.85),rgba(13,8,56,0))!important;border:0!important}
+.brand span small{color:var(--rf-edge)!important;letter-spacing:.16em}
+.wallet{background:linear-gradient(180deg,#ffe35a,#ff9d2e)!important;color:var(--rf-ol)!important;border:3px solid var(--rf-ol)!important;border-radius:999px!important;font-weight:900;padding:2px 12px!important;box-shadow:3px 3px 0 var(--rf-pink)}
+.stash{background:rgba(13,8,56,.7)!important;border:2px solid var(--rf-edge)!important;border-radius:999px!important;color:#fff!important;padding:2px 10px!important;display:inline-flex;gap:4px;align-items:center}
+.nav{background:linear-gradient(180deg,#2a1d7a,#0d0838)!important;border-top:3px solid var(--rf-edge)!important;box-shadow:0 -4px 0 var(--rf-pink)!important}
+.nav button,.nav a{color:#fff!important;font-weight:900}
+.nav .active,.nav [aria-current]{color:var(--rf-sun)!important}
+/* ---- progress ---- */
+.guide-progress i{height:10px;border-radius:99px;border:2px solid var(--rf-ol);background:rgba(255,255,255,.25)}
+.guide-progress i.filled{background:repeating-linear-gradient(135deg,var(--rf-sun) 0 8px,var(--rf-orange) 8px 16px)}
+progress,.bar{border-radius:99px}
+/* ---- explainer ---- */
+.guide-hero{display:grid;place-items:center;width:112px;height:112px;margin:8px auto 4px;border-radius:50%;background:radial-gradient(circle,var(--rf-sun) 0 36%,var(--rf-pink) 37% 60%,var(--rf-violet) 61%);border:4px solid var(--rf-ol);box-shadow:0 0 0 4px var(--rf-edge),0 0 28px rgba(255,79,163,.6)}
+.guide-hero .mq-i{width:70px;height:70px;filter:drop-shadow(0 0 2px #fff) drop-shadow(0 0 2px #fff)}
+.guide-panel h1{text-align:center}.guide-body{text-align:center;font-size:1.02rem;margin:.2em 0 .8em}
+.gchips{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin:0 0 16px}
+.gchip{display:inline-flex;align-items:center;gap:6px;background:rgba(13,8,56,.6);color:#fff;border:2px solid var(--rf-edge);border-radius:999px;padding:4px 12px 4px 6px;font-size:.88rem}
+.gchip .mq-i{width:26px;height:26px}
+.gchip b{font-weight:900}
+.guide-actions{display:flex;gap:10px}.guide-actions .button{flex:1}
+/* ---- Lunino stage: circular holo pad ---- */
+svg.creature{filter:drop-shadow(0 6px 0 rgba(0,0,0,.28))}
+.courier-card svg.creature,.profile-teaser svg.creature{background:radial-gradient(circle at 50% 60%,rgba(53,230,255,.35),transparent 66%)}
+/* ---- map chrome ---- */
+.map-hud *{font-family:inherit}
+.leaflet-container{background:#1b1458}
+.custom-pin span{border:3px solid var(--rf-ol)!important}
+.custom-pin .mq-i{width:20px;height:20px}
+/* ---- tiles / chips already in the game ---- */
+.mq-mtile,.mq-adv{border:3px solid var(--rf-ol)!important;border-radius:6px 18px 6px 18px!important;box-shadow:4px 4px 0 var(--rf-pink)!important}
+@media (prefers-reduced-motion:no-preference){.guide-hero{animation:rfpulse 3.2s ease-in-out infinite}@keyframes rfpulse{50%{box-shadow:0 0 0 4px var(--rf-edge),0 0 40px rgba(255,210,31,.8)}}}
+/* ---- beat the older, more specific rules ---- */
+html[data-theme] .view:not(:has(.map-world)){background:transparent!important}
+html[data-theme] .view:not(:has(.map-world))>.card,html[data-theme] .view:not(:has(.map-world))>.card:has(form),html[data-theme] .lunar-sheet,html[data-theme] .onboard-panel{
+ background:linear-gradient(160deg,var(--rf-card1),var(--rf-card2))!important;color:var(--rf-ink)!important;border:3px solid var(--rf-edge)!important;border-radius:6px 26px 6px 26px!important;
+ box-shadow:5px 6px 0 var(--rf-shadow),inset 0 0 0 2px var(--rf-ol),inset 0 0 30px rgba(255,255,255,.06)!important}
+html[data-theme=night] .view:not(:has(.map-world))>.card h1,html[data-theme=night] .view:not(:has(.map-world))>.card h2,html[data-theme=night] .view:not(:has(.map-world))>.card h3,html[data-theme=night] .view:not(:has(.map-world))>.card:has(form) h1,html[data-theme=night] .view:not(:has(.map-world))>.card:has(form) h2,html[data-theme=night] .view:not(:has(.map-world))>.card:has(form) h3{color:var(--rf-sun)!important}
+html[data-theme=night] .view:not(:has(.map-world))>.card h1,html[data-theme=night] .view:not(:has(.map-world))>.card:has(form) h1{color:#fff7e8!important}
+html[data-theme=day] .view:not(:has(.map-world))>.card h1,html[data-theme=day] .view:not(:has(.map-world))>.card:has(form) h1{color:var(--rf-ol)!important}
+html[data-theme=day] .view:not(:has(.map-world))>.card h2,html[data-theme=day] .view:not(:has(.map-world))>.card h3,html[data-theme=day] .view:not(:has(.map-world))>.card:has(form) h2,html[data-theme=day] .view:not(:has(.map-world))>.card:has(form) h3{color:#c0246f!important}
+html[data-theme] .view:not(:has(.map-world))>.card .small,html[data-theme] .view:not(:has(.map-world))>.card:has(form) .small{color:var(--rf-mut)!important}
+html[data-theme] .view:not(:has(.map-world))>.card .button,html[data-theme] .lunar-sheet .button,html[data-theme] .more-grid .button,html[data-theme] .menu-grid .button{
+ background:linear-gradient(180deg,rgba(255,255,255,.5) 0 46%,rgba(255,255,255,0) 47%),linear-gradient(180deg,#5d86ff,#2b44c9)!important;color:#fff!important;border:3px solid var(--rf-ol)!important;box-shadow:0 4px 0 var(--rf-ol),0 6px 14px rgba(0,0,0,.3)!important}
+html[data-theme] .view:not(:has(.map-world))>.card .button.primary{background:linear-gradient(180deg,rgba(255,255,255,.65) 0 46%,rgba(255,255,255,0) 47%),linear-gradient(180deg,#ffe35a,#ff9d2e)!important;color:var(--rf-ol)!important;border-color:var(--rf-ol)!important}
+html[data-theme] .view:not(:has(.map-world))>.card .button.quiet{background:linear-gradient(180deg,rgba(255,255,255,.28) 0 46%,rgba(255,255,255,0) 47%),linear-gradient(180deg,#6a4fd6,#3a2a99)!important;color:#fff!important}
+html[data-theme] .onboard-panel .button.primary{color:var(--rf-ol)!important}
+html[data-theme] .lunar-sheet{color:var(--rf-ink)!important}
+html[data-theme] .view:not(:has(.map-world))>.card input,html[data-theme] .view:not(:has(.map-world))>.card select{background:#fff8ea!important;color:var(--rf-ol)!important}
+/* lock badges and tiny icons */
+[class*=lock] .mq-i,.mq-lock .mq-i{width:18px;height:18px}
+.tag-button .mq-i,.place-icon .mq-i{width:1.15em;height:1.15em}
+.place-icon{background:transparent!important}
+.nav .mq-i{width:26px;height:26px}
+.theme-toggle{border:3px solid var(--rf-ol)!important;background:linear-gradient(180deg,#ffe35a,#ff9d2e)!important;color:var(--rf-ol)!important;box-shadow:0 3px 0 var(--rf-ol)}
+/* ---- onboarding backdrop, rows, map chips ---- */
+html[data-theme] .onboarding{background:transparent!important;color:var(--rf-ink)!important}
+html[data-theme] .onboarding::before,html[data-theme] .onboarding::after{opacity:.35}
+html[data-theme] .onboard-panel p,html[data-theme] .onboard-panel label{color:var(--rf-ink)!important}
+html[data-theme] .onboard-foot,html[data-theme] .onboarding .onboard-foot{color:var(--rf-mut)!important}
+.guide-skip{color:var(--rf-edge)!important;font-weight:800}
+html[data-theme] .place-card{background:rgba(13,8,56,.35)!important;color:var(--rf-ink)!important;border:2px solid var(--rf-edge)!important;border-radius:6px 18px 6px 18px!important;box-shadow:3px 3px 0 var(--rf-ol)!important}
+html[data-theme=day] .place-card{background:rgba(255,255,255,.55)!important}
+html[data-theme] .place-card h3{color:var(--rf-sun)!important}
+html[data-theme=day] .place-card h3{color:#c0246f!important}
+html[data-theme] .place-card p{color:var(--rf-mut)!important}
+html[data-theme] .map-hud .player-pill,html[data-theme] .map-hud .coin-pill,html[data-theme] .map-hud .news-bell,.map-world .float-actions button,.map-world .map-bottom .location-tool,.map-world .map-bottom .center-tool{
+ background:linear-gradient(160deg,var(--rf-card1),var(--rf-card2))!important;color:var(--rf-ink)!important;border:3px solid var(--rf-edge)!important;border-radius:6px 16px 6px 16px!important;box-shadow:3px 3px 0 var(--rf-shadow)!important}
+html[data-theme] .map-hud .coin-pill{font-weight:900}
+html[data-theme] .map-hud .coin-pill .mq-i{width:22px;height:22px}
+.map-caption,.map-route{font-family:ui-monospace,"Courier New",monospace}
+/* ---- day-mode text contrast and row cards ---- */
+html[data-theme=day] .view:not(:has(.map-world))>.card :is(p,label,li,.small,.lede,legend,dt,dd,summary){color:var(--rf-ink)!important}
+html[data-theme=day] .view:not(:has(.map-world))>.card .button,html[data-theme=day] .view:not(:has(.map-world))>.card .tag-button{color:#fff!important}
+html[data-theme=day] .view:not(:has(.map-world))>.card .button.primary{color:var(--rf-ol)!important}
+html[data-theme=day] .player-code,html[data-theme=day] .view .player-code{color:#c0246f!important}
+html[data-theme=night] .player-code{color:var(--rf-cyan)!important}
+html[data-theme] .view:not(:has(.map-world)) :is(.cosmetic,.rank-row,.request-row,.announcement,.place-card){background:rgba(13,8,56,.38)!important;color:var(--rf-ink)!important;border:2px solid var(--rf-edge)!important;border-radius:6px 18px 6px 18px!important;box-shadow:3px 3px 0 var(--rf-ol)!important}
+html[data-theme=day] .view:not(:has(.map-world)) :is(.cosmetic,.rank-row,.request-row,.announcement,.place-card){background:rgba(255,255,255,.72)!important}
+html[data-theme] .view:not(:has(.map-world)) :is(.cosmetic,.rank-row,.request-row,.announcement,.place-card) :is(h3,h4,strong,b){color:var(--rf-sun)!important}
+html[data-theme=day] .view:not(:has(.map-world)) :is(.cosmetic,.rank-row,.request-row,.announcement,.place-card) :is(h3,h4,strong,b){color:#c0246f!important}
+html[data-theme] .view:not(:has(.map-world)) :is(.cosmetic,.rank-row,.request-row,.announcement,.place-card) :is(p,small,span,div){color:var(--rf-ink)!important}
+html[data-theme] .view:not(:has(.map-world)) .place-card .status,html[data-theme] .view:not(:has(.map-world)) .place-card .status *{color:var(--rf-ol)!important}
+.onboard-emblem{background:none!important;border:0!important;box-shadow:none!important}.onboard-emblem .mq-i{width:70px;height:70px}
+html[data-theme] .container-hero p,html[data-theme] .container-hero h1,html[data-theme] .view:not(:has(.map-world))>.card .container-hero p{color:#fff7e8!important}
+html[data-theme=day] .container-hero h1{color:#fff7e8!important;text-shadow:3px 3px 0 var(--rf-ol)}
+.container-hero .plate{font-family:ui-monospace,monospace}
+html[data-theme=day] .view:not(:has(.map-world))>.card .container-hero h1,html[data-theme=night] .view:not(:has(.map-world))>.card .container-hero h1{color:#fff7e8!important;text-shadow:3px 3px 0 var(--rf-ol)}
+html[data-theme=day] .view:not(:has(.map-world))>.card .player-code,html[data-theme=day] .view:not(:has(.map-world))>.card .player-code *{color:#c0246f!important}
+html[data-theme=night] .view:not(:has(.map-world))>.card .player-code,html[data-theme=night] .view:not(:has(.map-world))>.card .player-code *{color:var(--rf-cyan)!important}
+html[data-theme] .button:not(.primary),html[data-theme] .button:not(.primary) *,html[data-theme] .lunar-sheet .button,html[data-theme] .lunar-sheet .button *{color:#fff!important}
+html[data-theme] .button.primary *{color:var(--rf-ol)!important}
+html[data-theme] .lunar-sheet .button svg:not(.mq-i),html[data-theme] .menu-grid .button svg:not(.mq-i){filter:drop-shadow(0 0 1px #fff) drop-shadow(0 0 1px #fff)}
+.menu-ic{width:34px!important;height:34px!important;margin-right:2px}
