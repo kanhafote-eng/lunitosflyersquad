@@ -63,7 +63,8 @@ function doPost(e){
 
 var ACTION_ROLE = { sync:'player', pull:'player',
   staffLookup:'staff', staffGrant:'staff', staffRedemptions:'staff', staffHandle:'staff',
-  adminGet:'admin', adminSave:'admin', adminPlayers:'admin', adminSetTrust:'admin', adminReviewPlace:'admin', adminGrant:'admin', adminLog:'admin' };
+  adminGet:'admin', adminSave:'admin', adminPlayers:'admin', adminSetTrust:'admin', adminReviewPlace:'admin', adminGrant:'admin', adminLog:'admin',
+  presenceSync:'player', staffPickups:'staff', staffPickupHandle:'staff', adminImportPlaces:'admin' };
 
 function auth_(req, a){
   var need = ACTION_ROLE[a]; if(!need) throw new Error('unknown action');
@@ -93,6 +94,22 @@ function setCells_(name, row, o){
   for(var k in o){ var c = h.indexOf(k); if(c>=0) s.getRange(row, c+1).setValue(safeCell_(o[k])); }
 }
 function validCode_(c){ return /^[A-Za-z0-9\-]{3,24}$/.test(String(c||'')); }
+
+var PLACE_TYPES = ['restaurant','cafe','bar','späti','shop','kindergarten','social','studio','rehearsal','cultural','other'];
+var TAB_HEADERS = {
+  Pickups:['ReqId','PlayerCode','PlayerName','Flyers','Posters','Stickers','Status','RequestedAt','UpdatedAt','HandledBy','StaffNote'],
+  Presence:['Code','Name','Lat','Lng','Look','UpdatedAt']
+};
+// Creates Pickups / Presence on first use, so older sheets keep working without manual steps.
+function ensure_(name){
+  var s = ss_().getSheetByName(name);
+  if(!s){ s = ss_().insertSheet(name); s.appendRow(TAB_HEADERS[name]); s.setFrozenRows(1); }
+  return s;
+}
+function ms_(v){ var t = (v instanceof Date) ? v.getTime() : new Date(String(v||'')).getTime(); return isFinite(t) ? t : 0; }
+function pid_(code){ var h = 5381, s = 'mq:' + String(code); for(var i=0;i<s.length;i++){ h = ((h<<5)+h + s.charCodeAt(i)) | 0; } return 'p' + (h>>>0).toString(36); }
+function pickupPoints_(){ var r = findRow_('Config','Key','points.pickup'); var v = r ? Number(r.Value) : 5; return isFinite(v) ? v : 5; }
+function qty_(v, max){ v = Math.floor(Number(v)||0); return Math.max(0, Math.min(max, v)); }
 
 function upsertPlayer_(p){
   if(!validCode_(p.code)) throw new Error('bad player code');
@@ -124,6 +141,14 @@ var HANDLERS = {
       appendObj_('Places',{id:id,name:clean_(pl.name,60),type:clean_(pl.type,20),posterSize:clean_(pl.posterSize,10),address:clean_(pl.address,120),
         lat:lat,lng:lng,spot:clean_(pl.spot,80),notes:clean_(pl.notes,200),active:false,status:'submitted',addedBy:clean_(p.name,40)+' ('+p.code+')',updatedAt:now_()});
     });
+    ensure_('Pickups');
+    (req.pickups||[]).slice(0,5).forEach(function(pk){
+      var id = clean_(pk.id,40); if(!id || findRow_('Pickups','ReqId',id)) return;
+      var waiting = table_('Pickups').rows.filter(function(r){ return r.PlayerCode===p.code && r.Status==='pending'; }).length;
+      if(waiting>=3) return;
+      var f=qty_(pk.flyers,300), po=qty_(pk.posters,50), st=qty_(pk.stickers,100); if(!f&&!po&&!st) return;
+      appendObj_('Pickups',{ReqId:id,PlayerCode:p.code,PlayerName:clean_(p.name,40),Flyers:f,Posters:po,Stickers:st,Status:'pending',RequestedAt:now_(),UpdatedAt:now_()});
+    });
     return {ok:true, logged:n, trust:trust};
   },
   pull: function(req){
@@ -133,14 +158,17 @@ var HANDLERS = {
       .map(function(r){ return {id:r.ReqId,status:r.Status,note:r.StaffNote}; });
     var pr = findRow_('Players','Code',code);
     return {ok:true, grants:strip_(grants).map(function(g){return {id:g.GrantId,type:g.Type,flyers:g.Flyers,posters:g.Posters,stickers:g.Stickers,points:g.Points,note:g.Note};}),
-      redemptions:reds, trust:pr?pr.Trust:'new'};
+      redemptions:reds, trust:pr?pr.Trust:'new',
+      pickups: (function(){ ensure_('Pickups'); return table_('Pickups').rows.filter(function(r){ return r.PlayerCode===code; }).slice(-30)
+        .map(function(r){ return {id:r.ReqId,status:r.Status,note:r.StaffNote}; }); })()};
   },
   // applied-ack comes with the next pull via req.ack
   staffLookup: function(req){
     var code = String(req.code||'').trim(); var pr = findRow_('Players','Code',code);
     if(!pr) return {ok:true, found:false};
     var pend = table_('Redemptions').rows.filter(function(r){return r.PlayerCode===code && r.Status==='pending';});
-    return {ok:true, found:true, player:{code:pr.Code,name:pr.Name,wallet:pr.Wallet,earned:pr.Earned,flyers:pr.Flyers,posters:pr.Posters,stickers:pr.Stickers,trust:pr.Trust,lastSeen:pr.LastSeen}, pending:strip_(pend)};
+    return {ok:true, found:true, player:{code:pr.Code,name:pr.Name,wallet:pr.Wallet,earned:pr.Earned,flyers:pr.Flyers,posters:pr.Posters,stickers:pr.Stickers,trust:pr.Trust,lastSeen:pr.LastSeen}, pending:strip_(pend),
+      pickups: (function(){ ensure_('Pickups'); return strip_(table_('Pickups').rows.filter(function(r){return r.PlayerCode===code && r.Status==='pending';})); })()};
   },
   staffGrant: function(req, role){
     if(!validCode_(req.code) || !findRow_('Players','Code',req.code)) throw new Error('Player not found');
@@ -160,6 +188,78 @@ var HANDLERS = {
     var st = req.status==='delivered'?'delivered':(req.status==='rejected'?'rejected':''); if(!st) throw new Error('bad status');
     setCells_('Redemptions', r._row, {Status:st,UpdatedAt:now_(),StaffNote:clean_(req.note,100),HandledBy:clean_(req.by||'staff',30)});
     return {ok:true};
+  },
+  staffPickups: function(req){
+    ensure_('Pickups');
+    var rows = table_('Pickups').rows;
+    if(!req.all) rows = rows.filter(function(r){return r.Status==='pending';}); else rows = rows.slice(-150).reverse();
+    return {ok:true, rows:strip_(rows), points:pickupPoints_()};
+  },
+  staffPickupHandle: function(req, role){
+    ensure_('Pickups');
+    var r = findRow_('Pickups','ReqId',req.id); if(!r) throw new Error('Pickup not found');
+    if(r.Status!=='pending') throw new Error('Already '+r.Status);
+    var by = role==='admin' ? 'admin' : 'staff';
+    if(req.decision==='reject'){
+      setCells_('Pickups', r._row, {Status:'rejected',UpdatedAt:now_(),HandledBy:by,StaffNote:clean_(req.note,100)});
+      return {ok:true,status:'rejected'};
+    }
+    if(req.decision!=='accept') throw new Error('bad decision');
+    var f = req.flyers===undefined ? Number(r.Flyers) : qty_(req.flyers,300), po = req.posters===undefined ? Number(r.Posters) : qty_(req.posters,50), st = req.stickers===undefined ? Number(r.Stickers) : qty_(req.stickers,100);
+    if(!f&&!po&&!st) throw new Error('Nothing to hand over');
+    var id='G'+Date.now().toString(36)+Math.floor(Math.random()*1000);
+    appendObj_('Grants',{GrantId:id,PlayerCode:r.PlayerCode,Type:'pickup',Flyers:f,Posters:po,Stickers:st,Points:pickupPoints_(),Note:'Pickup approved',By:by,CreatedAt:now_(),Applied:false});
+    setCells_('Pickups', r._row, {Status:'accepted',Flyers:f,Posters:po,Stickers:st,UpdatedAt:now_(),HandledBy:by,StaffNote:clean_(req.note,100)});
+    return {ok:true,status:'accepted',id:id};
+  },
+  presenceSync: function(req){
+    var p = req.player||{}; if(!validCode_(p.code)) throw new Error('bad player code');
+    ensure_('Presence');
+    var pr = findRow_('Players','Code',p.code); if(pr) setCells_('Players', pr._row, {LastSeen:now_()});
+    var row = findRow_('Presence','Code',p.code), t = now_();
+    if(req.stop){
+      if(row) setCells_('Presence', row._row, {Lat:'',Lng:'',UpdatedAt:t});
+    } else if(req.lat!==undefined && req.lng!==undefined){
+      var lat=Number(req.lat), lng=Number(req.lng);
+      if(!isFinite(lat)||!isFinite(lng)||Math.abs(lat)>90||Math.abs(lng)>180) throw new Error('bad position');
+      var vals={Name:clean_(p.name,40),Lat:Math.round(lat*1000)/1000,Lng:Math.round(lng*1000)/1000,Look:clean_(JSON.stringify(req.look||{}),400),UpdatedAt:t};
+      if(row) setCells_('Presence', row._row, vals); else { vals.Code=p.code; appendObj_('Presence', vals); }
+    }
+    var nowMs = Date.now(), sharing = [], sharingIds = {};
+    table_('Presence').rows.forEach(function(r){
+      if(r.Lat==='' || r.Lng==='' || nowMs-ms_(r.UpdatedAt) > 30*60000) return;
+      var look = {}; try{ look = JSON.parse(String(r.Look||'{}')); }catch(e){}
+      var id = pid_(r.Code); sharingIds[id]=1;
+      sharing.push({pid:id,name:String(r.Name||'Courier'),lat:Number(r.Lat),lng:Number(r.Lng),look:look,updatedAt:ms_(r.UpdatedAt),me:r.Code===p.code});
+    });
+    var online = [];
+    table_('Players').rows.forEach(function(r){
+      if(nowMs-ms_(r.LastSeen) > 5*60000) return;
+      var id = pid_(r.Code);
+      online.push({pid:id,name:String(r.Name||'Courier'),sharing:!!sharingIds[id],me:r.Code===p.code});
+    });
+    return {ok:true, online:online.slice(0,100), sharing:sharing.slice(0,100)};
+  },
+  adminImportPlaces: function(req){
+    var rows = req.rows||[]; if(!rows.length) throw new Error('No rows to import');
+    if(rows.length>300) throw new Error('Import at most 300 places at a time');
+    var status = req.status==='submitted' ? 'submitted' : 'approved', active = status==='approved';
+    var existing = table_('Places').rows.map(function(r){ return {name:String(r.name).toLowerCase().trim(), lat:Number(r.lat), lng:Number(r.lng)}; });
+    var added=0, skipped=[], bad=[], base=Date.now();
+    rows.forEach(function(r, i){
+      var name = clean_(r.name,60).trim(), lat=Number(r.lat), lng=Number(r.lng);
+      if(!name){ bad.push('Row '+(i+1)+': missing name'); return; }
+      if(!isFinite(lat)||!isFinite(lng)||Math.abs(lat)>90||Math.abs(lng)>180||(lat===0&&lng===0)){ bad.push(name+': invalid coordinates'); return; }
+      var dup = existing.some(function(e){ return e.name===name.toLowerCase() && Math.abs(e.lat-lat)<0.0005 && Math.abs(e.lng-lng)<0.0005; });
+      if(dup){ skipped.push(name); return; }
+      var type = clean_(r.type,20).toLowerCase().trim(); if(PLACE_TYPES.indexOf(type)<0) type='other';
+      var size = clean_(r.posterSize,10).toUpperCase().trim(); if(['A4','A3','A2','A1'].indexOf(size)<0) size='A4';
+      appendObj_('Places',{id:'imp'+(base+i).toString(36),name:name,type:type,posterSize:size,address:clean_(r.address,120),lat:lat,lng:lng,
+        spot:clean_(r.spot,80),notes:clean_(r.notes,200),active:active,status:status,addedBy:'admin (CSV import)',updatedAt:now_()});
+      existing.push({name:name.toLowerCase(),lat:lat,lng:lng}); added++;
+    });
+    bust_();
+    return {ok:true, added:added, skipped:skipped, invalid:bad};
   },
   adminGet: function(){
     var o={ok:true}; EDITABLE.concat(['Redemptions']).forEach(function(n){ var t=table_(n); o[n]={headers:t.h,rows:strip_(t.rows)}; });

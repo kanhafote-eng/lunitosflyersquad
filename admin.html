@@ -1,26 +1,27 @@
 <!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex"><title>MondQuest · Admin</title><link rel="stylesheet" href="panel.css"></head><body><div class="wrap" id="app"></div>
-<script src="config.js"></script><script src="js/api.js"></script><script>
+<script src="config.js"></script><script src="js/api.js"></script><script src="vendor/qr/jsQR.js"></script><script src="js/qrscan.js"></script><script>
 const app=$('#app');let D=null,tab='Rewards';
-const TABS=[['Rewards','Prizes'],['Cosmetics','Outfits'],['Gadgets','Gadgets'],['Config','Points & rules'],['Combos','Combos'],['Ranks','Ranks'],['Places','Places'],['News','News'],['Players','Players'],['Log','Activity']];
+const TABS=[['Rewards','Prizes'],['Cosmetics','Outfits'],['Gadgets','Gadgets'],['Config','Points & rules'],['Combos','Combos'],['Ranks','Ranks'],['Places','Places'],['News','News'],['Players','Players'],['Pickups','Pickups'],['Log','Activity']];
 const NEW={Rewards:{id:'',name:'',category:'merch',cost:50,stock:10,active:true},Cosmetics:{id:'',name:'',kind:'accessory',cost:5,rank:1,active:true},Gadgets:{id:'',name:'',cost:5,rank:1,comet:0,meteor:0,nebula:0,void:0,rings:0,active:true},Combos:{id:'',stat:'places',at:5,bonus:10,label:''},Ranks:{rank:'',name:'',earned:0},Places:{id:'',name:'',type:'cafe',posterSize:'A4',address:'',lat:52.51,lng:13.45,spot:'',notes:'',active:true,status:'approved',addedBy:'admin'},News:{id:'',title:'',body:'',image:'',type:'new flyers',active:true}};
 const LOCK={Config:['Key','Unit','What it does'],Places:['status','addedBy','updatedAt'],News:['updatedAt']};
 function login(msg){app.innerHTML=`<div class="card login"><h1>Admin</h1><p class="sub">MondQuest · Zirkus Mond</p><form id="f"><input id="pin" type="password" placeholder="Admin PIN" autocomplete="off" style="width:100%"><br><br><button style="width:100%">Enter</button></form><p class="hint">${esc(msg||'')}</p></div>`;
  $('#f').onsubmit=async e=>{e.preventDefault();Api.setPin($('#pin').value);try{await load();render()}catch(x){Api.clear();login(x.message)}}}
-async function load(){D=await Api.call('adminGet');D.Players={rows:(await Api.call('adminPlayers')).rows};D.Log={rows:(await Api.call('adminLog')).rows.reverse()}}
+async function load(){D=await Api.call('adminGet');try{D.Pickups={rows:(await Api.call('staffPickups',{all:true})).rows}}catch(e){D.Pickups={rows:[],old:true}}D.Players={rows:(await Api.call('adminPlayers')).rows};D.Log={rows:(await Api.call('adminLog')).rows.reverse()}}
 function render(){app.innerHTML=`<div class="top"><div><h1>Admin panel</h1><p class="sub">Changes reach every player within a minute of saving.</p></div><span><button class="alt" id="rl">Reload</button> <button class="alt" id="out">Sign out</button></span></div>
- <div class="tabs">${TABS.map(([k,l])=>`<button class="${k===tab?'on':''}" data-t="${k}">${l}${k==='Places'&&D.Places.rows.some(r=>r.status==='submitted')?' •':''}${k==='Redemptions'?'':''}</button>`).join('')}</div><div id="body"></div>`;
+ <div class="tabs">${TABS.map(([k,l])=>`<button class="${k===tab?'on':''}" data-t="${k}">${l}${k==='Places'&&D.Places.rows.some(r=>r.status==='submitted')?' •':''}${k==='Pickups'&&D.Pickups.rows.some(r=>r.Status==='pending')?' •':''}${k==='Redemptions'?'':''}</button>`).join('')}</div><div id="body"></div>`;
  document.querySelectorAll('[data-t]').forEach(b=>b.onclick=()=>{tab=b.dataset.t;render()});$('#out').onclick=()=>{Api.clear();login()};$('#rl').onclick=async()=>{try{await load();render();toast('Reloaded')}catch(x){toast(x.message,1)}};
- ({Players:players,Log:logView})[tab]?({Players:players,Log:logView})[tab]():editor()}
+ ({Players:players,Pickups:pickupsView,Log:logView})[tab]?({Players:players,Pickups:pickupsView,Log:logView})[tab]():editor()}
 function editor(){const t=D[tab],h=t.headers,rows=t.rows,lock=LOCK[tab]||[];
  const sub=rows.filter(r=>r.status==='submitted');
  $('#body').innerHTML=`${tab==='Places'&&sub.length?`<div class="card"><h2>Waiting for review (${sub.length})</h2>${sub.map(r=>`<div class="row" style="margin:6px 0"><b style="flex:1">${esc(r.name)} <span class="hint">${esc(r.type)} · ${esc(r.address)} · ${esc(r.addedBy)} · <a style="color:#5AB0FF" target="_blank" rel="noopener" href="https://www.openstreetmap.org/?mlat=${esc(r.lat)}&mlon=${esc(r.lng)}#map=18/${esc(r.lat)}/${esc(r.lng)}">map</a></span></b><button class="good" data-a="${esc(r.id)}">Approve</button><button class="bad" data-x="${esc(r.id)}">Reject</button></div>`).join('')}</div>`:''}
+${tab==='Places'?csvCard():''}
  <div class="card">${tab==='Cosmetics'||tab==='Gadgets'?'<p class="hint">Costs must be between 3 and 10 Mondinos.</p>':''}${tab==='Config'?'<p class="hint">Change only the Value column. Per-flyer points are decimals (0.2 = 5 flyers for 1 point).</p>':''}${tab==='Rewards'||tab==='Places'||tab==='News'||tab==='Cosmetics'||tab==='Gadgets'?'<p class="hint">Do not delete items players already used: untick “active” instead.</p>':''}
  <div class="grid"><table><tr>${h.map(k=>`<th>${esc(k)}</th>`).join('')}<th></th></tr>${rows.map((r,i)=>`<tr>${h.map(k=>cell(r,i,k,lock.includes(k))).join('')}<td>${NEW[tab]?`<button class="bad" data-del="${i}" style="min-height:34px;padding:2px 8px">✕</button>`:''}</td></tr>`).join('')}</table></div>
  <div class="row" style="margin-top:10px">${NEW[tab]?'<button class="alt" id="add">+ Add row</button>':''}<button id="save">Save ${esc(tab)}</button></div></div>`;
  document.querySelectorAll('[data-c]').forEach(el=>el.onchange=()=>{const[i,k]=el.dataset.c.split('|');rows[i][k]=el.type==='checkbox'?el.checked:(el.type==='number'?Number(el.value):el.value)});
  document.querySelectorAll('[data-del]').forEach(b=>b.onclick=()=>{if(confirm('Remove this row?')){rows.splice(+b.dataset.del,1);editor()}});
  $('#add')&&($('#add').onclick=()=>{const n={...NEW[tab]};if('id' in n)n.id=tab.slice(0,2).toLowerCase()+Date.now().toString(36).slice(-4);if(tab==='Ranks')n.rank=rows.length+1;rows.push(n);editor()});
- $('#save').onclick=save;
+ $('#save').onclick=save;if(tab==='Places')csvBind();
  document.querySelectorAll('[data-a]').forEach(b=>b.onclick=()=>review(b.dataset.a,true));document.querySelectorAll('[data-x]').forEach(b=>b.onclick=()=>review(b.dataset.x,false))}
 function cell(r,i,k,locked){const v=r[k];const id=`data-c="${i}|${k}"`;
  if(locked)return`<td class="hint">${esc(v)}</td>`;
@@ -29,9 +30,59 @@ function cell(r,i,k,locked){const v=r[k];const id=`data-c="${i}|${k}"`;
 async function save(){const b=$('#save');b.disabled=true;try{const rows=D[tab].rows.map(r=>{const o={};D[tab].headers.forEach(k=>o[k]=r[k]);return o});
  const x=await Api.call('adminSave',{sheet:tab,rows});toast('Saved '+x.saved+' rows');await load();render()}catch(e){toast(e.message,1)}finally{b.disabled=false}}
 async function review(id,approve){try{await Api.call('adminReviewPlace',{id,approve});toast(approve?'Place approved':'Place rejected');await load();render()}catch(e){toast(e.message,1)}}
-function players(){const rows=D.Players.rows;$('#body').innerHTML=`<div class="card"><h2>Players (${rows.length})</h2><div class="grid"><table><tr><th>Name</th><th>Code</th><th>Mondinos</th><th>Earned</th><th>Material</th><th>Last seen</th><th>Trust</th><th>Give</th></tr>${rows.map(r=>`<tr><td>${esc(r.Name)}</td><td>${esc(r.Code)}</td><td>${esc(r.Wallet)}</td><td>${esc(r.Earned)}</td><td>${esc(r.Flyers)}/${esc(r.Posters)}/${esc(r.Stickers)}</td><td>${esc(String(r.LastSeen).slice(0,10))}</td>
+/* ---------- Pickups tab ---------- */
+const pkRow=x=>`<div class="pk" data-pk="${esc(x.ReqId)}"><b style="flex:1 1 100%">${esc(x.PlayerName)} <span class="hint">${esc(x.PlayerCode)} · ${esc(String(x.RequestedAt).slice(0,16).replace('T',' '))}</span></b><label>Flyers <input type="number" min="0" value="${esc(x.Flyers)}" data-q="f"></label><label>Posters <input type="number" min="0" value="${esc(x.Posters)}" data-q="p"></label><label>Stickers <input type="number" min="0" value="${esc(x.Stickers)}" data-q="s"></label><button class="good" data-pa>Accept</button><button class="bad" data-pr>Decline</button></div>`;
+function pickupsView(){const rows=D.Pickups.rows,pend=rows.filter(r=>r.Status==='pending'),done=rows.filter(r=>r.Status!=='pending');
+ $('#body').innerHTML=`<div class="card"><h2>Pickups waiting (${pend.length})</h2>${D.Pickups.old?'<p class="hint warn">Update the Apps Script code (sheets/Code.gs) and redeploy to enable pickups.</p>':'<p class="hint">A player’s first pickup is free. Every later pickup appears here (and on the staff page) until someone accepts it.</p>'}${pend.length?pend.map(pkRow).join(''):'<p class="hint">Nothing waiting.</p>'}</div>
+ <div class="card"><h2>Recent decisions</h2><div class="grid"><table><tr><th>When</th><th>Player</th><th>Flyers</th><th>Posters</th><th>Stickers</th><th>Status</th><th>By</th></tr>${done.map(r=>`<tr><td>${esc(String(r.UpdatedAt).slice(0,16).replace('T',' '))}</td><td>${esc(r.PlayerName)}</td><td>${esc(r.Flyers)}</td><td>${esc(r.Posters)}</td><td>${esc(r.Stickers)}</td><td>${esc(r.Status)}</td><td>${esc(r.HandledBy)}</td></tr>`).join('')}</table></div></div>`;
+ document.querySelectorAll('[data-pk]').forEach(el=>{const id=el.dataset.pk;el.querySelector('[data-pa]').onclick=()=>pkHandle(id,'accept',el);el.querySelector('[data-pr]').onclick=()=>pkHandle(id,'reject',el)})}
+async function pkHandle(id,decision,el){const b={id,decision};if(decision==='reject'&&!confirm('Decline this pickup?'))return;
+ if(decision==='accept'){b.flyers=el.querySelector('[data-q=f]').value;b.posters=el.querySelector('[data-q=p]').value;b.stickers=el.querySelector('[data-q=s]').value}
+ try{await Api.call('staffPickupHandle',b);toast(decision==='accept'?'Pickup accepted':'Pickup declined');await load();render()}catch(e){toast(e.message,1)}}
+
+/* ---------- CSV import of places ---------- */
+const CSV_ALIAS={name:['name','title','place','venue'],type:['type','category','kind'],address:['address','street','adresse'],lat:['lat','latitude'],lng:['lng','lon','long','longitude'],posterSize:['postersize','poster','size'],spot:['spot','where'],notes:['notes','note','comment','comments']};
+let csvRows=[];
+function parseCSV(text){text=String(text||'').replace(/^﻿/,'');const first=text.split(/\r?\n/)[0]||'';const d=[';','\t',','].map(c=>[c,(first.match(new RegExp(c==='\t'?'\t':'\\'+c,'g'))||[]).length]).sort((a,b)=>b[1]-a[1])[0][0];
+ const out=[];let row=[],f='',q=false;for(let i=0;i<text.length;i++){const c=text[i];
+  if(q){if(c==='"'){if(text[i+1]==='"'){f+='"';i++}else q=false}else f+=c}
+  else if(c==='"')q=true;else if(c===d){row.push(f);f=''}else if(c==='\n'||c==='\r'){if(c==='\r'&&text[i+1]==='\n')i++;row.push(f);f='';if(row.some(x=>x.trim()!==''))out.push(row);row=[]}else f+=c}
+ row.push(f);if(row.some(x=>x.trim()!==''))out.push(row);
+ if(!out.length)return[];const head=out.shift().map(h=>h.trim().toLowerCase().replace(/[^a-z]/g,''));
+ const idx={};for(const k in CSV_ALIAS){idx[k]=head.findIndex(h=>CSV_ALIAS[k].includes(h))}
+ const num=v=>{const n=Number(String(v||'').trim().replace(',','.'));return isFinite(n)&&String(v||'').trim()!==''?n:null};
+ return out.map(r=>{const g=k=>idx[k]>=0?String(r[idx[k]]==null?'':r[idx[k]]).trim():'';return{name:g('name'),type:g('type').toLowerCase(),address:g('address'),lat:num(g('lat')),lng:num(g('lng')),posterSize:g('posterSize'),spot:g('spot'),notes:g('notes')}})}
+function csvCard(){return `<div class="card"><h2>Import places from a CSV file</h2><p class="hint">Columns: <b>name</b> (required), type, address, lat, lng, posterSize, spot, notes. Rows without lat/lng are located from their address. Places already in the list are skipped.</p>
+ <div class="csv-drop"><div class="row"><input type="file" id="csvf" accept=".csv,.txt,text/csv"><button class="alt" id="csvt">Download template</button></div>
+ <div class="row" style="margin-top:8px"><label class="hint">City added to addresses <input id="csvcity" value="Berlin" style="width:130px"></label><label class="hint">Add as <select id="csvmode"><option value="approved">Approved (live in the game now)</option><option value="submitted">Waiting for review</option></select></label></div>
+ <div id="csvprev" class="hint" style="margin-top:8px">No file chosen.</div></div></div>`}
+function csvBind(){
+ $('#csvt').onclick=()=>{const t='name,type,address,lat,lng,posterSize,spot,notes\nExample Café,cafe,"Warschauer Straße 1, Berlin",,,A3,Talk to the barista,Ask at the counter\nExample Bar,bar,,52.5061,13.4509,A4,Leave on a shelf,';const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([t],{type:'text/csv'}));a.download='places-template.csv';a.click()};
+ $('#csvf').onchange=async e=>{const f=e.target.files[0];if(!f)return;csvRows=parseCSV(await f.text());csvPreview()}}
+function csvPreview(){const el=$('#csvprev');if(!csvRows.length){el.textContent='No rows found. Check that the first line has column names.';return}
+ const miss=csvRows.filter(r=>r.lat==null||r.lng==null),noName=csvRows.filter(r=>!r.name);
+ el.innerHTML=`<b>${csvRows.length} rows read.</b> ${miss.length?`${miss.length} need a lookup from their address${miss.some(r=>!r.address)?' <span class="warn">(some have no address either and will be skipped)</span>':''}.`:'All have coordinates.'}${noName.length?` <span class="warn">${noName.length} without a name will be skipped.</span>`:''}
+ <div class="grid" style="margin:8px 0;max-height:220px"><table><tr><th>Name</th><th>Type</th><th>Address</th><th>Lat</th><th>Lng</th></tr>${csvRows.slice(0,8).map(r=>`<tr><td>${esc(r.name)}</td><td>${esc(r.type)}</td><td>${esc(r.address)}</td><td>${esc(r.lat)}</td><td>${esc(r.lng)}</td></tr>`).join('')}</table></div>${csvRows.length>8?`<p class="hint">…and ${csvRows.length-8} more.</p>`:''}
+ <button id="csvgo">Import ${csvRows.length} places</button> <span id="csvst"></span>`;
+ $('#csvgo').onclick=csvImport}
+async function geocode(addr,city){const q=city&&!addr.toLowerCase().includes(city.toLowerCase())?addr+', '+city:addr;
+ const r=await fetch('https://nominatim.openstreetmap.org/search?format=json&limit=1&q='+encodeURIComponent(q),{headers:{Accept:'application/json'}});const j=await r.json();return j[0]?{lat:+j[0].lat,lng:+j[0].lon}:null}
+async function csvImport(){const b=$('#csvgo'),st=$('#csvst'),city=$('#csvcity').value.trim();b.disabled=true;const rows=csvRows.filter(r=>r.name).slice(0,300),fails=[];
+ try{for(let i=0;i<rows.length;i++){const r=rows[i];if((r.lat==null||r.lng==null)&&r.address){st.textContent=`Locating ${i+1}/${rows.length}…`;
+   try{const g=await geocode(r.address,city);if(g){r.lat=g.lat;r.lng=g.lng}else fails.push(r.name+' (address not found)')}catch(e){fails.push(r.name+' (lookup failed)')}await new Promise(k=>setTimeout(k,1100))}}
+  const ready=rows.filter(r=>r.lat!=null&&r.lng!=null);st.textContent='Saving…';
+  const x=await Api.call('adminImportPlaces',{rows:ready,status:$('#csvmode').value});
+  const notes=[...(x.skipped.length?[x.skipped.length+' already in the list']:[]),...(x.invalid||[]),...fails];
+  toast(`Added ${x.added} places`+(notes.length?` · ${notes.length} skipped`:''));
+  csvRows=[];await load();render();
+  if(notes.length)setTimeout(()=>alert('Not imported:\n'+notes.slice(0,25).join('\n')),200)
+ }catch(e){toast(e.message,1);b.disabled=false;st.textContent=''}}
+
+let pFilter='';
+function players(){const all=D.Players.rows,rows=pFilter?all.filter(r=>String(r.Code).toUpperCase()===pFilter):all;$('#body').innerHTML=`<div class="card"><h2>Players (${rows.length})</h2><div class="row" style="margin-bottom:8px"><button class="alt" id="pscan">Scan player QR</button>${pFilter?`<button class="alt" id="pall">Show all players</button><span class="hint">Showing ${esc(pFilter)}</span>`:''}</div><div class="grid"><table><tr><th>Name</th><th>Code</th><th>Mondinos</th><th>Earned</th><th>Material</th><th>Last seen</th><th>Trust</th><th>Give</th></tr>${rows.map(r=>`<tr><td>${esc(r.Name)}</td><td>${esc(r.Code)}</td><td>${esc(r.Wallet)}</td><td>${esc(r.Earned)}</td><td>${esc(r.Flyers)}/${esc(r.Posters)}/${esc(r.Stickers)}</td><td>${esc(String(r.LastSeen).slice(0,10))}</td>
  <td><select data-tr="${esc(r.Code)}">${['new','trusted','flagged'].map(o=>`<option ${o===r.Trust?'selected':''}>${o}</option>`).join('')}</select></td>
  <td><div class="row" style="flex-wrap:nowrap"><input id="pt-${esc(r.Code)}" type="number" placeholder="± pts" style="width:80px"><input id="nt-${esc(r.Code)}" placeholder="reason" style="width:120px"><button data-g="${esc(r.Code)}" style="min-height:34px">Give</button></div></td></tr>`).join('')}</table></div><p class="hint">Positive points reward, negative points correct. The player sees the note in their activity.</p></div>`;
+ $('#pscan').onclick=()=>QrScan.open(c=>{pFilter=c;players();if(!D.Players.rows.some(r=>String(r.Code).toUpperCase()===c))toast('No player with code '+c,1)});$('#pall')&&($('#pall').onclick=()=>{pFilter='';players()});
  document.querySelectorAll('[data-tr]').forEach(s=>s.onchange=async()=>{try{await Api.call('adminSetTrust',{code:s.dataset.tr,trust:s.value});toast('Trust updated')}catch(e){toast(e.message,1)}});
  document.querySelectorAll('[data-g]').forEach(b=>b.onclick=async()=>{const c=b.dataset.g,p=Number($('#pt-'+c).value);if(!p)return toast('Enter points',1);try{await Api.call('adminGrant',{code:c,points:p,note:$('#nt-'+c).value});toast('Queued for the player');$('#pt-'+c).value=''}catch(e){toast(e.message,1)}})}
 function logView(){$('#body').innerHTML=`<div class="card"><h2>Latest activity</h2><div class="grid"><table><tr><th>When</th><th>Player</th><th>Type</th><th>What</th><th>Pts</th></tr>${D.Log.rows.map(r=>`<tr><td>${esc(String(r.At||r.Received).slice(0,16).replace('T',' '))}</td><td>${esc(r.PlayerName)}</td><td>${esc(r.Type)}</td><td>${esc(r.Label)}</td><td>${esc(r.Amount)}</td></tr>`).join('')}</table></div></div>`}

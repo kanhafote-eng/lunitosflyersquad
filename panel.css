@@ -13,3 +13,13 @@ button{cursor:pointer;background:var(--y);color:#0B1B6B;font-weight:800;border-c
 .pill{display:inline-block;border-radius:99px;padding:2px 10px;font-size:.8rem;font-weight:700}.pill.new{background:var(--b);color:#0B1B6B}.pill.trusted{background:var(--g);color:#0B1B6B}.pill.flagged{background:var(--p)}
 .toast{position:fixed;left:50%;bottom:20px;transform:translateX(-50%);background:var(--g);color:#0B1B6B;padding:10px 16px;border-radius:12px;font-weight:800;z-index:9;max-width:90vw}.toast.bad{background:var(--p);color:#fff}
 .login{max-width:360px;margin:12vh auto}.hint{color:var(--mut);font-size:.85rem}
+
+/* QR scanner + pickups + CSV import */
+.scan-ov{position:fixed;inset:0;z-index:20;background:#050b3aee;display:grid;place-items:center;padding:14px}
+.scan-box{width:min(94vw,460px);background:var(--panel);border:2px solid var(--y);border-radius:16px;padding:12px}
+.scan-box video{width:100%;aspect-ratio:1;object-fit:cover;border-radius:12px;background:#000;display:block}
+.scan-frame{position:relative}.scan-frame:after{content:"";position:absolute;inset:18%;border:3px solid var(--y);border-radius:14px;pointer-events:none;box-shadow:0 0 0 999px #0006}
+.pk{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:8px 0;padding:8px;border:1px solid var(--line);border-radius:12px}
+.pk label{font-size:.85rem;color:var(--mut)}.pk input[type=number]{width:74px}
+.csv-drop{border:2px dashed var(--b);border-radius:12px;padding:12px}
+.warn{color:#ffd0d0}.okc{color:var(--g)}

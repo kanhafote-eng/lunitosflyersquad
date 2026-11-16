@@ -3,7 +3,7 @@
 (function(){
 const C=window.MQ_CONFIG||{};if(!C.sheetUrl)return;
 const num=v=>{v=Number(v);return isFinite(v)?v:0},bool=v=>v===true||String(v).toUpperCase()==='TRUE';
-const S=()=>{state.__sync=state.__sync||{lastAt:0,reqs:[],places:[],applied:[],ack:[]};return state.__sync};
+const S=()=>{state.__sync=state.__sync||{lastAt:0,reqs:[],places:[],applied:[],ack:[]};state.__sync.pk=state.__sync.pk||[];return state.__sync};
 // The public game never has local admin powers: those live in admin.html behind the server PIN.
 try{Object.defineProperty(state,'adminMode',{get:()=>false,set:()=>{},enumerable:false,configurable:true})}catch(e){}
 new MutationObserver(()=>{const t=document.getElementById('admin-toggle');if(t){const l=t.closest('label');(l||t).remove()}}).observe(document.documentElement,{childList:true,subtree:true});
@@ -49,8 +49,9 @@ async function sync(){
     const entries=(state.history||[]).filter(h=>h.at>sy.lastAt&&!/^(grant)/.test(h.type)).slice(0,200);
     const reds=(state.redemptionRequests||[]).filter(r=>r.type==='reward'&&r.playerCode===state.user.code&&isPending(r)&&!sy.reqs.includes(r.id)).map(r=>({id:r.id,item:r.name,cost:r.cost,category:r.category}));
     const pls=(state.places||[]).filter(p=>!p.remote&&!/^seed-/.test(p.id)&&p.discoverer===state.user.name&&!p.retired&&!sy.places.includes(p.id)).slice(0,5);
-    const res=await post({action:'sync',player:snapshot(),entries:entries.map(h=>({id:h.id,type:h.type,label:h.label,amount:h.amount,at:new Date(h.at).toISOString()})),redemptions:reds,places:pls.map(p=>({id:p.id,name:p.name,type:p.type,posterSize:p.posterSize,address:p.address,lat:p.lat,lng:p.lng,spot:p.spot,notes:p.notes}))});
-    if(res&&res.ok){if(entries.length)sy.lastAt=Math.max(...entries.map(h=>h.at));reds.forEach(r=>sy.reqs.push(r.id));pls.forEach(p=>sy.places.push(p.id));save0()}
+    const pks=(state.pickupRequests||[]).filter(r=>r.awaiting&&r.status==='pending'&&r.playerCode===String(state.user.code)&&!sy.pk.includes(r.id)).slice(0,5);
+    const res=await post({action:'sync',player:snapshot(),pickups:pks.map(r=>({id:r.id,flyers:r.quantities.flyers,posters:r.quantities.posters,stickers:r.quantities.stickers})),entries:entries.map(h=>({id:h.id,type:h.type,label:h.label,amount:h.amount,at:new Date(h.at).toISOString()})),redemptions:reds,places:pls.map(p=>({id:p.id,name:p.name,type:p.type,posterSize:p.posterSize,address:p.address,lat:p.lat,lng:p.lng,spot:p.spot,notes:p.notes}))});
+    if(res&&res.ok){if(entries.length)sy.lastAt=Math.max(...entries.map(h=>h.at));reds.forEach(r=>sy.reqs.push(r.id));pks.forEach(r=>sy.pk.push(r.id));pls.forEach(p=>sy.places.push(p.id));save0()}
   }catch(e){}finally{busy=false}
 }
 async function pull(){
@@ -62,16 +63,72 @@ async function pull(){
       if(!sy.applied.includes(g.id)){
         const q={flyers:num(g.flyers),posters:num(g.posters),stickers:num(g.stickers)};
         if(q.flyers||q.posters||q.stickers){state.inventory.flyers+=q.flyers;state.inventory.posters+=q.posters;state.inventory.stickers+=q.stickers;mqBatchAdd(q);
-          history('grant','Staff restock · '+[q.flyers&&q.flyers+' flyers',q.posters&&q.posters+' posters',q.stickers&&q.stickers+' stickers'].filter(Boolean).join(', '),0);toast('Staff added material to your bag.')}
-        const p=num(g.points);if(p){state.wallet+=p;if(p>0)state.earned+=p;history('grant',(g.note||'Admin adjustment'),p);toast((p>0?'+':'')+p+' Mondinos from the circus team.')}
+          history('grant',(g.type==='pickup'?'Pickup approved · ':'Staff restock · ')+[q.flyers&&q.flyers+' flyers',q.posters&&q.posters+' posters',q.stickers&&q.stickers+' stickers'].filter(Boolean).join(', '),0);toast(g.type==='pickup'?'Pickup approved! Material added to your bag.':'Staff added material to your bag.')}
+        const p=num(g.points);if(p){state.wallet+=p;if(p>0)state.earned+=p;history('grant',(g.note||'Admin adjustment'),p);if(g.type!=='pickup')toast((p>0?'+':'')+p+' Mondinos from the circus team.')}
         sy.applied.push(g.id);if(sy.applied.length>100)sy.applied.shift();changed=true}
       sy.ack.push(g.id)});
+    (res.pickups||[]).forEach(pk=>{const r=(state.pickupRequests||[]).find(x=>x.id===pk.id&&x.awaiting&&x.status==='pending');if(!r)return;
+      if(pk.status==='accepted'){r.status='verified';r.awaiting=false;r.resolvedAt=Date.now();changed=true}
+      else if(pk.status==='rejected'){r.status='rejected';r.awaiting=false;r.resolvedAt=Date.now();toast('The staff declined a pickup request.');changed=true}});
     (res.redemptions||[]).forEach(rd=>{const r=(state.redemptionRequests||[]).find(x=>x.id===rd.id);if(!r||!isPending(r))return;
       if(rd.status==='delivered'){r.status='delivered';r.resolvedAt=Date.now();history('redemption-approved','Delivery verified · '+r.name,0,{requestId:r.id});toast('Prize delivered: '+r.name);changed=true}
       else if(rd.status==='rejected'){state.wallet+=r.cost;const it=state.rewards.find(x=>x.id===r.itemId);if(it)it.stock++;r.status='rejected';r.resolvedAt=Date.now();history('redemption-refund','Rejected prize · '+r.name,-r.cost,{requestId:r.id});toast('Prize request rejected. Mondinos refunded.');changed=true}});
     if(changed){save0();refreshView()}
   }catch(e){}
 }
+
+/* ---------- first pickup free, later pickups need staff approval ---------- */
+if(state.firstPickupDone===undefined)state.firstPickupDone=(state.pickupRequests||[]).length>0||(state.history||[]).some(h=>h.type==='pickup');
+window.mqPickupGate=function(q){
+  if(!state.firstPickupDone){state.firstPickupDone=true;return false}
+  state.pickupRequests.push({id:uid(),playerName:state.user?.name||'Courier',playerCode:String(state.user?.code||''),quantities:q,points:0,status:'pending',awaiting:true,at:Date.now()});
+  save();toast('Request sent. Show your QR code to the staff to get it approved.');pickup();return true};
+const _pickup=pickup;
+pickup=function(){_pickup();
+  const f=document.getElementById('pickup-form');if(!f)return;
+  const btn=f.querySelector('button.primary');
+  if(btn&&state.firstPickupDone)btn.textContent='Request pickup · staff approves it';
+  const wait=(state.pickupRequests||[]).filter(r=>r.awaiting&&r.status==='pending');
+  const note=document.createElement('div');note.className='batch-notice';note.style.margin='10px 0';
+  note.innerHTML=state.firstPickupDone?'<b>Pickups are approved by the staff.</b> Show your QR code at the tent: the material and points reach your bag as soon as they accept.'+(wait.length?'<br>Waiting for approval: '+wait.map(r=>['flyers','posters','stickers'].filter(k=>r.quantities[k]).map(k=>r.quantities[k]+' '+k).join(', ')).join(' · '):''):'<b>Your first pickup is free.</b> After that, the staff approves each pickup.';
+  f.parentNode.insertBefore(note,f);
+  if(window.mqQrCard)f.parentNode.appendChild(window.mqQrCard())};
+
+/* ---------- players online + shared locations (server side) ---------- */
+let rOnline=[],rSharing=[];
+window.mqPresence={online:()=>rOnline,sharing:()=>rSharing};
+async function presence(extra){
+  if(!state.user||!navigator.onLine)return;
+  try{const look={...playerSnapshot()};delete look.code;delete look.name;
+    const res=await post({action:'presenceSync',player:{code:state.user.code,name:state.user.name},look,...(extra||{})});
+    if(res&&res.ok){rOnline=res.online||[];rSharing=res.sharing||[];try{refreshPresenceList();if(leafletInstance)refreshMarkers();if(currentView==='players'&&window.playersScreen&&!document.querySelector('input:focus'))playersScreen()}catch(e){}}
+  }catch(e){}
+}
+const _live=livePresence;
+livePresence=function(){const m=new Map();
+  rSharing.filter(x=>!x.me).forEach(x=>m.set('r:'+x.pid,{code:'',name:x.name,avatar:x.look,lat:x.lat,lng:x.lng,updatedAt:x.updatedAt,expires:x.updatedAt+30*60000,remote:true}));
+  _live().forEach(x=>m.set(String(x.code),x));return [...m.values()]};
+refreshPresenceList=function(){const el=document.getElementById('online-list');if(!el)return;
+  const on=rOnline.filter(x=>!x.me);
+  el.innerHTML=on.length?'<b>Online now ('+on.length+')</b><br>'+on.map(x=>'<span>'+(x.sharing?'📍':'●')+' '+esc(x.name)+(x.sharing?' · sharing location':'')+'</span>').join(' '):(rOnline.length?'No other players online right now.':'Checking who is online…')};
+shareLocation=function(){
+  if(!state.user?.code){toast('Create a profile first.');return}
+  if(!navigator.geolocation){toast('Geolocation is unavailable in this browser.');return}
+  if(!window.isSecureContext&&location.hostname!=='localhost'){toast('Location requires HTTPS or localhost.');return}
+  navigator.geolocation.getCurrentPosition(pos=>{
+    const code=String(state.user.code),entry={code,name:state.user.name,avatar:playerSnapshot(),lat:pos.coords.latitude,lng:pos.coords.longitude,updatedAt:Date.now(),expires:Date.now()+30*60*1000};
+    try{localStorage.setItem(presenceKey(code),JSON.stringify(entry))}catch(e){}
+    presence({lat:pos.coords.latitude,lng:pos.coords.longitude});refreshPresenceList();refreshMarkers();
+    toast('Location shared with other players for 30 minutes (rounded to about 100 m).')},
+    ()=>toast('Could not get your location. Nothing was shared.'),{enableHighAccuracy:false,timeout:10000,maximumAge:0})};
+const _stop=stopLocationShare;
+stopLocationShare=function(){_stop();presence({stop:true})};
+setInterval(()=>{if(document.hidden||!state.user)return;
+  const mine=livePresence().find(x=>!x.remote&&String(x.code)===String(state.user.code));
+  if(mine&&navigator.geolocation)navigator.geolocation.getCurrentPosition(p=>{try{const e={...mine,lat:p.coords.latitude,lng:p.coords.longitude,updatedAt:Date.now()};localStorage.setItem(presenceKey(mine.code),JSON.stringify(e))}catch(x){}presence({lat:p.coords.latitude,lng:p.coords.longitude})},()=>presence(),{timeout:8000,maximumAge:60000});
+  else presence()},60000);
+setTimeout(presence,2500);
+
 // debounce syncing after every save
 const _save=save;let t=null;
 save=function(){const r=_save.apply(this,arguments);clearTimeout(t);t=setTimeout(sync,4000);return r};
@@ -79,5 +136,5 @@ async function cycle(){await loadConfig();await sync();await pull();if(applied)r
 cycle();
 document.addEventListener('visibilitychange',()=>{if(!document.hidden)cycle()});
 setInterval(()=>{if(!document.hidden){pull();sync()}},90000);
-window.mqSheet={sync,pull,loadConfig};
+window.mqSheet={sync,pull,loadConfig,presence};
 })();

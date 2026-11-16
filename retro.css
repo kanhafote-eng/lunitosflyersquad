@@ -206,3 +206,35 @@ html[data-theme] .map-world .world-shortcut svg{filter:drop-shadow(0 0 1px #fff)
 html[data-theme] .map-world .leaflet-map{filter:saturate(1.2) hue-rotate(-10deg) brightness(1) contrast(1.06)!important}
 html[data-theme=night] .leaflet-tile-pane,html[data-theme=day] .leaflet-tile-pane{filter:brightness(1) contrast(1.02) saturate(1.15)!important}
 html[data-theme] .map-world:before{background:linear-gradient(180deg,rgba(26,18,80,.38) 0%,transparent 18%,transparent 78%,rgba(26,18,80,.42) 100%),linear-gradient(rgba(120,95,255,.16),rgba(120,95,255,.16)),repeating-linear-gradient(0deg,rgba(255,255,255,.035) 0 1px,transparent 1px 5px)!important;mix-blend-mode:multiply}
+
+/* ===== iOS Safari hardening: anchor the app to the visible viewport so the top HUD can never scroll away ===== */
+html,body{position:fixed;top:0;left:0;right:0;bottom:0;width:100%;height:100%;overflow:hidden;overscroll-behavior:none;-webkit-text-size-adjust:100%}
+#app{position:fixed;top:0;left:0;right:0;bottom:0;width:100%;height:auto!important;min-height:0!important}
+.view{top:0;left:0;right:0;bottom:0;-webkit-overflow-scrolling:touch}
+.map-world{position:absolute!important;top:0;left:0;right:0;bottom:0;width:auto;height:auto;margin:0!important;min-height:0!important}
+.map-world .leaflet-map{position:absolute;top:0;left:0;right:0;bottom:0;width:100%;height:100%!important;min-height:0!important}
+.map-world .map-hud{top:calc(env(safe-area-inset-top,0px) + 12px)}
+
+/* ===== Settings ===== */
+.settings .seg{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.settings .seg .button{margin:0}
+.set-row{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 0;border-bottom:1px solid var(--rf-grid)}
+.set-row b,.set-row small{display:block}
+.set-row small{font-size:13px;opacity:.8}
+.switch{position:relative;flex:none;width:58px;height:34px;border-radius:20px;border:2px solid var(--rf-ol);background:rgba(120,120,160,.45);padding:0;transition:background .18s}
+.switch i{position:absolute;top:3px;left:3px;width:24px;height:24px;border-radius:50%;background:#fff;border:2px solid var(--rf-ol);transition:transform .18s}
+.switch[aria-checked=true]{background:var(--rf-mint)}
+.switch[aria-checked=true] i{transform:translateX(24px)}
+.set-about{margin-top:18px;text-align:center}
+
+/* ===== Softer moon-menu labels (less white, no glow) ===== */
+html[data-theme] .lunar-sheet .button:not(.primary),html[data-theme] .more-grid .button:not(.primary),html[data-theme] .menu-grid .button:not(.primary){background:linear-gradient(180deg,rgba(255,255,255,.12) 0 46%,rgba(255,255,255,0) 47%),linear-gradient(180deg,#34479f,#222f80)!important;font-weight:700;letter-spacing:.2px}
+html[data-theme] .lunar-sheet .button:not(.primary),html[data-theme] .lunar-sheet .button:not(.primary) *,html[data-theme] .more-grid .button:not(.primary) *,html[data-theme] .menu-grid .button:not(.primary) *{color:#d3daf5!important;text-shadow:none!important}
+html[data-theme] .lunar-sheet h1,html[data-theme] .lunar-sheet h2{color:#e4dffa!important;text-shadow:2px 2px 0 var(--rf-ol)!important}
+html[data-theme] .lunar-sheet .button svg,html[data-theme] .menu-grid .button svg,html[data-theme] .more-grid .button svg{filter:none!important}
+html[data-theme] .lunar-sheet .button .mq-i,html[data-theme] .more-grid .button .mq-i{opacity:.92}
+
+/* ===== Player QR ===== */
+.qr-card{text-align:center}
+.qr-box{background:#fff;padding:8px;border-radius:14px;border:3px solid var(--rf-ol);width:min(68vw,250px);margin:10px auto}
+.qr-box svg{width:100%;height:auto;display:block}

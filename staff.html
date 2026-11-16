@@ -1,16 +1,24 @@
 <!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex"><title>MondQuest · Staff</title><link rel="stylesheet" href="panel.css"></head><body><div class="wrap" id="app"></div>
-<script src="config.js"></script><script src="js/api.js"></script><script>
+<script src="config.js"></script><script src="js/api.js"></script><script src="vendor/qr/jsQR.js"></script><script src="js/qrscan.js"></script><script>
 const app=$('#app');let cur=null;
 function login(msg){app.innerHTML=`<div class="card login"><h1>Staff</h1><p class="sub">MondQuest · Zirkus Mond</p><form id="f"><input id="pin" type="password" inputmode="numeric" placeholder="Staff PIN" autocomplete="off" style="width:100%"><br><br><button style="width:100%">Enter</button></form><p class="hint">${esc(msg||'')}</p></div>`;
  $('#f').onsubmit=async e=>{e.preventDefault();Api.setPin($('#pin').value);try{await Api.call('staffRedemptions');main()}catch(x){Api.clear();login(x.message)}}}
 async function main(){
  app.innerHTML=`<div class="top"><div><h1>Staff desk</h1><p class="sub">Look up a player, restock material, hand over prizes.</p></div><button class="alt" id="out">Sign out</button></div>
- <div class="card"><h2>Find player</h2><form class="row" id="lf"><input id="code" placeholder="Player code, e.g. MQ-ABC123" autocapitalize="characters" autocomplete="off"><button>Look up</button></form><div id="pl"></div></div>
+ <div class="card"><h2>Find player</h2><form class="row" id="lf"><input id="code" placeholder="Player code, e.g. MQ-ABC123" autocapitalize="characters" autocomplete="off"><button>Look up</button><button type="button" class="alt" id="scan">Scan QR</button></form><div id="pl"></div></div>
+ <div class="card"><h2>Pickups waiting <button class="alt" id="rp" style="float:right;min-height:34px;padding:2px 10px">Refresh</button></h2><p class="hint">Check what the player takes, adjust the numbers if needed, then accept. Material and points reach the player’s bag within about 90 seconds.</p><div id="pks"></div></div>
  <div class="card"><h2>Prizes waiting <button class="alt" id="rf" style="float:right;min-height:34px;padding:2px 10px">Refresh</button></h2><div id="pend"></div></div>`;
- $('#out').onclick=()=>{Api.clear();login()};$('#rf').onclick=loadPending;
+ $('#out').onclick=()=>{Api.clear();login()};$('#rf').onclick=loadPending;$('#rp').onclick=loadPickups;$('#scan').onclick=()=>QrScan.open(c=>{$('#code').value=c;lookup(c)});
  $('#lf').onsubmit=async e=>{e.preventDefault();lookup($('#code').value.trim().toUpperCase())};
- loadPending();
+ loadPending();loadPickups();
 }
+
+const pkRow=x=>`<div class="pk" data-pk="${esc(x.ReqId)}"><b style="flex:1 1 100%">${esc(x.PlayerName)} <span class="hint">${esc(x.PlayerCode)} · ${esc(String(x.RequestedAt).slice(0,16).replace('T',' '))}</span></b><label>Flyers <input type="number" min="0" value="${esc(x.Flyers)}" data-q="f"></label><label>Posters <input type="number" min="0" value="${esc(x.Posters)}" data-q="p"></label><label>Stickers <input type="number" min="0" value="${esc(x.Stickers)}" data-q="s"></label><button class="good" data-pa>Accept</button><button class="bad" data-pr>Decline</button></div>`;
+function bindPk(root){root.querySelectorAll('[data-pk]').forEach(el=>{const id=el.dataset.pk;el.querySelector('[data-pa]').onclick=()=>pkHandle(id,'accept',el);el.querySelector('[data-pr]').onclick=()=>pkHandle(id,'reject',el)})}
+async function pkHandle(id,decision,el){const b={id,decision};if(decision==='reject'&&!confirm('Decline this pickup?'))return;
+ if(decision==='accept'){b.flyers=el.querySelector('[data-q=f]').value;b.posters=el.querySelector('[data-q=p]').value;b.stickers=el.querySelector('[data-q=s]').value}
+ try{await Api.call('staffPickupHandle',b);toast(decision==='accept'?'Pickup accepted':'Pickup declined');loadPickups();if(cur)lookup(cur)}catch(x){toast(x.message,1)}}
+async function loadPickups(){try{const r=await Api.call('staffPickups');const el=$('#pks');el.innerHTML=r.rows.length?r.rows.map(pkRow).join(''):'<p class="hint">No pickups waiting.</p>';bindPk(el)}catch(x){toast(x.message,1)}}
 async function loadPending(){try{const r=await Api.call('staffRedemptions');$('#pend').innerHTML=r.rows.length?`<div class="grid"><table><tr><th>Player</th><th>Prize</th><th>Cost</th><th>Asked</th><th></th></tr>${r.rows.map(x=>`<tr><td>${esc(x.PlayerName)}<br><span class="hint">${esc(x.PlayerCode)}</span></td><td>${esc(x.Item)}</td><td>${esc(x.Cost)}</td><td>${esc(String(x.RequestedAt).slice(0,16).replace('T',' '))}</td><td><button class="good" data-d="${esc(x.ReqId)}">Delivered</button> <button class="bad" data-r="${esc(x.ReqId)}">Reject</button></td></tr>`).join('')}</table></div>`:'<p class="hint">Nothing waiting.</p>';
  document.querySelectorAll('[data-d]').forEach(b=>b.onclick=()=>handle(b.dataset.d,'delivered'));document.querySelectorAll('[data-r]').forEach(b=>b.onclick=()=>handle(b.dataset.r,'rejected'))}catch(x){toast(x.message,1)}}
 async function handle(id,status){if(status==='rejected'&&!confirm('Reject this request? The player gets the Mondinos back.'))return;try{await Api.call('staffHandle',{id,status});toast(status==='delivered'?'Marked as delivered':'Rejected');loadPending();if(cur)lookup(cur)}catch(x){toast(x.message,1)}}
@@ -18,9 +26,10 @@ async function lookup(code){cur=code;const el=$('#pl');el.innerHTML='…';try{co
  if(!r.found){el.innerHTML='<p class="hint">No player with that code. Ask them to open the game once while online.</p>';return}
  const p=r.player;el.innerHTML=`<h2>${esc(p.name)} <span class="pill ${esc(p.trust)}">${esc(p.trust)}</span></h2><span class="stat">Mondinos <b>${esc(p.wallet)}</b></span><span class="stat">Earned <b>${esc(p.earned)}</b></span><span class="stat">Flyers <b>${esc(p.flyers)}</b></span><span class="stat">Posters <b>${esc(p.posters)}</b></span><span class="stat">Stickers <b>${esc(p.stickers)}</b></span><p class="hint">Last seen ${esc(String(p.lastSeen).slice(0,16).replace('T',' '))}. Numbers update when the player's phone syncs.</p>
  <h2>Give material</h2><div class="row"><label>Flyers <input id="gf" type="number" min="0" value="30" style="width:90px"></label><label>Posters <input id="gp" type="number" min="0" value="6" style="width:90px"></label><label>Stickers <input id="gs" type="number" min="0" value="12" style="width:90px"></label><button id="gb">Send to player</button></div><p class="hint">It lands in the player's bag the next time the game is open (within about 90 seconds).</p>
+ ${r.pickups&&r.pickups.length?`<h2>Their pending pickups</h2>${r.pickups.map(pkRow).join('')}`:''}
  ${r.pending.length?`<h2>Their pending prizes</h2>${r.pending.map(x=>`<div class="row"><b style="flex:1">${esc(x.Item)} · ${esc(x.Cost)}</b><button class="good" data-d="${esc(x.ReqId)}">Delivered</button><button class="bad" data-r="${esc(x.ReqId)}">Reject</button></div>`).join('')}`:''}`;
  $('#gb').onclick=async()=>{try{await Api.call('staffGrant',{code,flyers:$('#gf').value,posters:$('#gp').value,stickers:$('#gs').value});toast('Material sent')}catch(x){toast(x.message,1)}};
- el.querySelectorAll('[data-d]').forEach(b=>b.onclick=()=>handle(b.dataset.d,'delivered'));el.querySelectorAll('[data-r]').forEach(b=>b.onclick=()=>handle(b.dataset.r,'rejected'));
+ bindPk(el);el.querySelectorAll('[data-d]').forEach(b=>b.onclick=()=>handle(b.dataset.d,'delivered'));el.querySelectorAll('[data-r]').forEach(b=>b.onclick=()=>handle(b.dataset.r,'rejected'));
 }catch(x){el.innerHTML='';toast(x.message,1)}}
 Api.pin()?Api.call('staffRedemptions').then(main).catch(()=>login()):login();
 </script></body></html>
