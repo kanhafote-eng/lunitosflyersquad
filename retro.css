@@ -6,11 +6,11 @@ html[data-theme=day]{--rf-bg1:#ffe9c9;--rf-bg2:#ffc2d9;--rf-bg3:#a98cff;--rf-car
 h1 .mq-i,h2 .mq-i{width:1em;height:1em}
 /* ---- backdrop: sunset, stars, perspective grid, scanlines ---- */
 html[data-theme] body{background:linear-gradient(180deg,var(--rf-bg1) 0%,var(--rf-bg2) 52%,var(--rf-bg3) 100%) fixed!important;color:var(--rf-ink);position:relative}
-body::before{content:"";position:fixed;left:-20%;right:-20%;bottom:0;height:34vh;z-index:0;pointer-events:none;opacity:.55;
+body::before{content:"";position:fixed;left:-20%;right:-20%;bottom:0;height:34vh;z-index:-1;pointer-events:none;opacity:.55;
  background:linear-gradient(var(--rf-grid) 2px,transparent 2px) 0 0/100% 34px,linear-gradient(90deg,var(--rf-grid) 2px,transparent 2px) 0 0/54px 100%;transform:perspective(260px) rotateX(58deg);transform-origin:50% 100%;
  -webkit-mask-image:linear-gradient(transparent,#000 70%);mask-image:linear-gradient(transparent,#000 70%)}
 body::after{content:"";position:fixed;inset:0;z-index:9999;pointer-events:none;opacity:.07;background:repeating-linear-gradient(0deg,#000 0 1px,transparent 1px 3px)}
-.topbar,#app>*{position:relative;z-index:1}
+.topbar{z-index:2}
 /* ---- type: chunky anime title look ---- */
 h1,h2,.brand span{font-family:"Baloo 2","Trebuchet MS",system-ui,sans-serif!important;font-weight:900;letter-spacing:.2px}
 html[data-theme=night] h1{color:#fff7e8;text-shadow:3px 3px 0 var(--rf-pink),-1px -1px 0 var(--rf-ol),0 0 18px rgba(255,79,163,.55)}
@@ -131,3 +131,78 @@ html[data-theme] .button:not(.primary),html[data-theme] .button:not(.primary) *,
 html[data-theme] .button.primary *{color:var(--rf-ol)!important}
 html[data-theme] .lunar-sheet .button svg:not(.mq-i),html[data-theme] .menu-grid .button svg:not(.mq-i){filter:drop-shadow(0 0 1px #fff) drop-shadow(0 0 1px #fff)}
 .menu-ic{width:34px!important;height:34px!important;margin-right:2px}
+/* ===== v3 fixes ===== */
+/* world-map shortcut must not cover the bell */
+html[data-theme] .map-world .world-shortcut{top:122px!important;right:12px!important;left:auto!important}
+/* Zirkus Mond logo (no text) replaces moons */
+.brand svg{display:none!important}
+.brand::before{content:"";flex:none;width:44px;height:44px;margin-right:8px;background:url(assets/logo-mond.png) center/contain no-repeat;filter:drop-shadow(0 0 1px #fff) drop-shadow(0 0 6px rgba(255,210,31,.6))}
+.brand{display:inline-flex;align-items:center}
+html[data-theme] .moon-menu{background:radial-gradient(circle,#2a1d7a 0 62%,#0d0838 100%)!important;border:3px solid var(--rf-sun)!important;box-shadow:0 0 0 4px var(--rf-ol),0 0 22px rgba(255,210,31,.7)!important}
+.moon-menu svg{display:none!important}
+.moon-menu::before{content:"";display:block;width:40px;height:40px;margin:-4px auto 0;background:url(assets/logo-mond.png) center/contain no-repeat}
+.moon-menu small{color:#fff!important;font-weight:900;text-shadow:0 1px 0 var(--rf-ol)}
+.custom-pin.hq span{background:#1A1250!important;border:3px solid var(--rf-sun)!important;width:46px;height:46px}
+.custom-pin.hq .mq-i{width:34px;height:34px}
+/* brighter, more colourful map */
+html[data-theme] .map-world:before{background:linear-gradient(180deg,rgba(26,18,80,.38) 0%,transparent 18%,transparent 78%,rgba(26,18,80,.42) 100%),repeating-linear-gradient(0deg,rgba(255,255,255,.035) 0 1px,transparent 1px 5px)!important;box-shadow:none!important}
+html[data-theme] .map-world .leaflet-map{filter:saturate(1.25) hue-rotate(-10deg) brightness(1.12) contrast(1.02)!important}
+html[data-theme=night] .leaflet-tile-pane,html[data-theme=day] .leaflet-tile-pane{filter:brightness(1.04) contrast(1.02) saturate(1.2)!important}
+html[data-theme] .map-world:after{background:rgba(26,18,80,.8)!important;color:#fff!important;border-left-color:var(--rf-pink)!important}
+/* places: dim without flyers, glowing with flyers */
+html[data-theme] .custom-pin.place.inactive span{filter:saturate(.3) brightness(.78)!important;opacity:.82!important;background:#4a4878!important;border:3px solid #9a98c4!important;box-shadow:0 3px 0 var(--rf-ol)!important}
+html[data-theme] .custom-pin.place.inactive .mq-i{opacity:.8}
+html[data-theme] .custom-pin.place.active span{filter:none!important;opacity:1!important;background:#FFD21F!important;border:3px solid #fff!important;box-shadow:0 0 0 4px rgba(255,210,31,.55),0 0 22px 8px rgba(255,210,31,.75),0 4px 0 var(--rf-ol)!important}
+html[data-theme] .custom-pin.place.hot span{box-shadow:0 0 0 5px rgba(255,79,163,.6),0 0 30px 12px rgba(255,210,31,.95),0 4px 0 var(--rf-ol)!important}
+/* ===== Cargo: products in the game's cel style ===== */
+html[data-theme] .mq-chest{position:relative;background:linear-gradient(135deg,#ff4fa3,#9a6bff 60%,#3d6bff)!important;border:3px solid var(--rf-ol)!important;border-radius:6px 20px 6px 20px!important;box-shadow:4px 4px 0 var(--rf-ol),inset 0 0 0 2px rgba(255,255,255,.35)!important;color:#fff!important;gap:10px}
+.mq-chest .chest-ic{width:46px;height:46px;flex:none}.mq-chest>span{flex:1}
+html[data-theme] .mq-chest small{color:#fff!important}
+.mq-rank{font-weight:900}
+html[data-theme] .progress{height:18px!important;border:3px solid var(--rf-ol)!important;border-radius:99px!important;background:rgba(255,255,255,.18)!important}
+html[data-theme] .progress i{background:repeating-linear-gradient(135deg,var(--rf-sun) 0 8px,var(--rf-orange) 8px 16px)!important;border-radius:99px}
+html[data-theme] .mq-mtile{width:88px;background:linear-gradient(180deg,rgba(255,255,255,.14),rgba(255,255,255,.03)),#1b1458!important;border:3px solid var(--rf-edge)!important;border-radius:6px 16px 6px 16px!important;box-shadow:3px 3px 0 var(--rf-ol)!important;padding:8px 2px 6px}
+html[data-theme] .mq-mtile,html[data-theme] .mq-mtile span{color:var(--rf-ink)!important}
+html[data-theme] .mq-mtile b{color:var(--rf-sun)!important;font-size:16px}
+html[data-theme=day] .mq-mtile{background:linear-gradient(180deg,#fff,#ffe9f4)!important}
+html[data-theme=day] .mq-mtile,html[data-theme=day] .mq-mtile span{color:var(--rf-ol)!important}
+html[data-theme=day] .mq-mtile b{color:#c0246f!important}
+html[data-theme] .mq-mtile svg{filter:drop-shadow(0 0 2px rgba(255,255,255,.9))}
+html[data-theme] .mq-grid{gap:10px}
+html[data-theme] .mq-slot{background:radial-gradient(circle at 50% 42%,var(--t) 0,rgba(0,0,0,0) 72%),linear-gradient(160deg,#2a1d7a,#150f4f)!important;border:3px solid var(--rf-edge)!important;border-radius:6px 18px 6px 18px!important;box-shadow:3px 4px 0 var(--rf-ol),inset 0 0 0 2px rgba(255,255,255,.12)!important;transition:transform .1s}
+html[data-theme=day] .mq-slot{background:radial-gradient(circle at 50% 42%,var(--t) 0,rgba(255,255,255,0) 74%),linear-gradient(160deg,#fff,#ffe3f1)!important;border-color:var(--rf-ol)!important}
+html[data-theme] .mq-slot:active{transform:translateY(2px)}
+html[data-theme] .mq-slot svg{max-width:54px;filter:drop-shadow(0 0 2px #fff) drop-shadow(0 2px 0 rgba(26,18,80,.5))}
+html[data-theme] .mq-slot.sel{border-color:var(--rf-sun)!important;outline:3px solid var(--rf-pink)!important;outline-offset:1px;box-shadow:0 0 18px rgba(255,210,31,.8),3px 4px 0 var(--rf-ol)!important}
+html[data-theme] .mq-slot.lock{background:linear-gradient(160deg,#3a3770,#211d55)!important;border-color:#7a78a8!important}
+html[data-theme] .mq-slot.lock>span{opacity:.4;filter:grayscale(.8)}
+.mq-slot .mq-lock .mq-i{width:20px;height:20px}
+html[data-theme] .mq-panel,html[data-theme] .mq-adv{background:linear-gradient(160deg,#2a1d7a,#150f4f)!important;color:var(--rf-ink)!important;border:3px solid var(--rf-edge)!important;border-radius:6px 20px 6px 20px!important;box-shadow:4px 4px 0 var(--rf-pink)!important}
+html[data-theme=day] .mq-panel,html[data-theme=day] .mq-adv{background:linear-gradient(160deg,#fff,#ffe9f4)!important;border-color:var(--rf-ol)!important;box-shadow:4px 4px 0 var(--rf-blue)!important}
+html[data-theme] .view:not(:has(.map-world))>.card .mq-panel h2,html[data-theme] .view:not(:has(.map-world))>.card .mq-panel p,html[data-theme] .view:not(:has(.map-world))>.card .mq-panel .small,html[data-theme] .view:not(:has(.map-world))>.card .mq-panel span,html[data-theme] .view:not(:has(.map-world))>.card .mq-adv b,html[data-theme] .view:not(:has(.map-world))>.card .mq-adv small{color:var(--rf-ink)!important}
+html[data-theme=night] .view:not(:has(.map-world))>.card .mq-panel h2,html[data-theme=night] .view:not(:has(.map-world))>.card .mq-adv b{color:var(--rf-sun)!important}
+html[data-theme=day] .view:not(:has(.map-world))>.card .mq-panel h2,html[data-theme=day] .view:not(:has(.map-world))>.card .mq-adv b{color:#c0246f!important}
+html[data-theme] .mq-cost span{background:rgba(255,255,255,.12)!important;border:2px solid var(--rf-sun)!important;border-radius:99px!important;color:var(--rf-ink)!important;padding:2px 12px}
+html[data-theme] .mq-cost span.miss{border-color:var(--rf-pink)!important;background:rgba(255,79,163,.25)!important}
+html[data-theme=day] .mq-cost span{background:#fff4c2!important;color:var(--rf-ol)!important}
+/* prize rows: art on top-left, text flexible, button full width underneath */
+html[data-theme] .cosmetic:has(.reward-copy){flex-wrap:wrap;align-items:flex-start;gap:10px}
+html[data-theme] .cosmetic .reward-copy{flex:1 1 140px}
+html[data-theme] .cosmetic:has(.reward-copy)>.button{flex:1 1 100%}
+html[data-theme] .reward-art{background:radial-gradient(circle,rgba(255,210,31,.35),rgba(26,18,80,.9) 70%)!important;border:3px solid var(--rf-sun)!important;border-radius:6px 16px 6px 16px!important}
+html[data-theme] .reward-art>svg:first-child{opacity:1!important;max-width:80px;max-height:60px}
+html[data-theme] .reward-lunito{background:#1A1250!important;border:2px solid var(--rf-sun)!important}
+html[data-theme] .reward-stock{color:var(--rf-edge)!important}
+/* album cards */
+html[data-theme] .mq-card{border:3px solid var(--rf-ol)!important;border-radius:6px 16px 6px 16px!important;box-shadow:3px 4px 0 var(--rf-pink)!important}
+html[data-theme] .mq-card:not(.own){background:linear-gradient(160deg,#3a3770,#211d55)!important;color:#c9c3ff!important}
+html[data-theme] .mq-card.own{color:var(--rf-ol)!important}
+html[data-theme] .mq-grid{grid-template-columns:repeat(4,minmax(0,1fr))!important}
+html[data-theme] .mq-slot .mq-i{width:42px!important;height:42px!important;max-width:none!important}
+html[data-theme] .mq-cards{grid-template-columns:repeat(3,minmax(0,1fr))!important}
+html[data-theme] .mq-card .mq-i{width:34px;height:34px;max-width:none}
+html[data-theme] .map-world .world-shortcut{background:linear-gradient(160deg,var(--rf-card1),var(--rf-card2))!important;color:var(--rf-ink)!important;border:3px solid var(--rf-edge)!important;border-radius:6px 16px 6px 16px!important;box-shadow:3px 3px 0 var(--rf-shadow)!important}
+html[data-theme] .map-world .world-shortcut svg{filter:drop-shadow(0 0 1px #fff)}
+html[data-theme] .map-world .leaflet-map{filter:saturate(1.2) hue-rotate(-10deg) brightness(1) contrast(1.06)!important}
+html[data-theme=night] .leaflet-tile-pane,html[data-theme=day] .leaflet-tile-pane{filter:brightness(1) contrast(1.02) saturate(1.15)!important}
+html[data-theme] .map-world:before{background:linear-gradient(180deg,rgba(26,18,80,.38) 0%,transparent 18%,transparent 78%,rgba(26,18,80,.42) 100%),linear-gradient(rgba(120,95,255,.16),rgba(120,95,255,.16)),repeating-linear-gradient(0deg,rgba(255,255,255,.035) 0 1px,transparent 1px 5px)!important;mix-blend-mode:multiply}

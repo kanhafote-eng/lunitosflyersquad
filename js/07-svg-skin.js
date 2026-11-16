@@ -4,7 +4,7 @@
 const Y='#FFD21F',P='#FF4FA3',C='#35E6FF',B='#3D6BFF',V='#9A6BFF',G='#4DE3A0',O='#FF8A3D',W='#FFF6E6',N='#1A1250',L='#BFD4FF';
 const hl=(d,o='.7')=>`<path d="${d}" stroke="#fff" stroke-width="2" opacity="${o}" fill="none"/>`;
 const SYM={
-moon:`<circle cx="24" cy="24" r="20" fill="${Y}"/><circle cx="24" cy="24" r="15" fill="none" stroke-width="1.6"/><path d="M28 11a13 13 0 1 0 0 26a10 10 0 0 1 0-26z" fill="#E8571A"/>${hl('M12 17a14 14 0 0 1 7-7')}`,
+moon:`<circle cx="24" cy="24" r="23" fill="#1A1250" stroke="none"/><image href="assets/logo-mond.png" x="2" y="2" width="44" height="44"/>`,
 flyer:`<path d="M11 5h20l8 8v30H11z" fill="${W}"/><path d="M31 5v8h8" fill="${L}"/><rect x="15" y="17" width="20" height="8" rx="2" fill="${P}"/><path d="M16 31h18M16 36h12" stroke-width="2"/><path d="M24 20.5l1 2 2 .3-1.5 1.4.4 2-1.9-1-1.9 1 .4-2-1.5-1.4 2-.3z" fill="${Y}" stroke-width="1"/>`,
 poster:`<rect x="8" y="6" width="32" height="37" rx="2" fill="${C}"/><rect x="12" y="10" width="24" height="29" fill="${W}" stroke-width="2"/><circle cx="27" cy="19" r="4.5" fill="${Y}"/><path d="M12 39l8-12 6 8 4-5 6 9z" fill="${B}"/><path d="M5 6h9v5H5zM34 6h9v5h-9z" fill="${Y}" stroke-width="2"/>`,
 sticker:`<path d="M8 12a4 4 0 0 1 4-4h24a4 4 0 0 1 4 4v18L28 43H12a4 4 0 0 1-4-4z" fill="${G}"/><path d="M28 43V33a3 3 0 0 1 3-3h9" fill="${W}"/><path d="M22 14l2.6 5.5 6 .8-4.4 4.2 1.1 6-5.3-2.9-5.3 2.9 1.1-6-4.4-4.2 6-.8z" fill="${Y}" stroke-width="2"/>`,
@@ -69,7 +69,7 @@ bolt:`<path d="M27 3L9 27h12l-4 18 22-26H26z" fill="${Y}"/>${hl('M25 9l-9 13','.
 rank:`<path d="M24 4l17 6v12c0 11-7 18-17 22C14 40 7 33 7 22V10z" fill="${B}"/><path d="M24 12l3.500 7 7.500 1-5.500 5.200 1.400 7.600-6.900-3.800-6.900 3.800 1.400-7.600L13 20l7.500-1z" fill="${Y}" stroke-width="2"/>`,
 dot:`<circle cx="24" cy="24" r="8" fill="${Y}"/>`
 };
-const ALIAS={'🌙':'moon','☾':'moon','✨':'sparkle','✦':'sparkle','✧':'sparkle','📍':'pin','📌':'pin','🔭':'scope','⭐':'star','★':'star','🪐':'planet','☕':'cup','🪧':'poster','📣':'megaphone','📡':'dish','☄️':'comet','☄':'comet','🎪':'tent','🍽️':'plate','🍽':'plate','🍺':'beer','🛒':'cart','🛍️':'shopbag','🛍':'shopbag','🧸':'teddy','🏛️':'building','🏛':'building','🎸':'guitar','🎼':'music','🎭':'mask','✉':'mail','✉️':'mail','👤':'user','🎩':'hat','👑':'crown','🕶️':'shades','🕶':'shades','🎀':'bow','🪽':'wings','🪖':'helmet','🫧':'bubble','🚀':'rocket','🧰':'toolbox','📬':'mail','🔎':'magnifier','✕':'cross','⚑':'flag','📦':'package','🚚':'truck','🖼️':'frame','🖼':'frame','🏆':'trophy','📖':'book','💚':'heartg','🎟️':'ticket','🎟':'ticket','🎉':'party','🧡':'hearto','🔒':'lock','✓':'check','🛎️':'bell','🛎':'bell'};
+const ALIAS={'🌙':'moon','◉':'moon','☾':'moon','✨':'sparkle','✦':'sparkle','✧':'sparkle','📍':'pin','📌':'pin','🔭':'scope','⭐':'star','★':'star','🪐':'planet','☕':'cup','🪧':'poster','📣':'megaphone','📡':'dish','☄️':'comet','☄':'comet','🎪':'tent','🍽️':'plate','🍽':'plate','🍺':'beer','🛒':'cart','🛍️':'shopbag','🛍':'shopbag','🧸':'teddy','🏛️':'building','🏛':'building','🎸':'guitar','🎼':'music','🎭':'mask','✉':'mail','✉️':'mail','👤':'user','🎩':'hat','👑':'crown','🕶️':'shades','🕶':'shades','🎀':'bow','🪽':'wings','🪖':'helmet','🫧':'bubble','🚀':'rocket','🧰':'toolbox','📬':'mail','🔎':'magnifier','✕':'cross','⚑':'flag','📦':'package','🚚':'truck','🖼️':'frame','🖼':'frame','🏆':'trophy','📖':'book','💚':'heartg','🎟️':'ticket','🎟':'ticket','🎉':'party','🧡':'hearto','🔒':'lock','✓':'check','🛎️':'bell','🛎':'bell'};
 window.MQ_ICON_NAMES=Object.keys(SYM);
 const attrs='viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"';
 function sprite(){if(document.getElementById('mq-sprite'))return;const d=document.createElement('div');d.id='mq-sprite';d.setAttribute('aria-hidden','true');d.style.cssText='position:absolute;width:0;height:0;overflow:hidden';
@@ -94,7 +94,8 @@ function swapText(n){const t=n.nodeValue;RE.lastIndex=0;if(!RE.test(t))return;RE
 let pending=false;const q=new Set();
 const MENU_ICON={missions:'star',places:'pin',pickup:'tent',shop:'container',album:'book',adventures:'rocket',ranking:'trophy',spotted:'scope',courier:'user',announcements:'bell',manual:'book',more:'sparkle'};
 function menuIcons(){document.querySelectorAll('.lunar-sheet .button[data-view],.menu-grid .button[data-view],.more-grid .button[data-view]').forEach(b=>{if(b.dataset.mqi)return;const ic=MENU_ICON[b.dataset.view];const s=b.querySelector(':scope>svg:not(.mq-i)');if(ic&&s){s.outerHTML=mqIcon(ic,'menu-ic');}b.dataset.mqi='1'})}
-function flush(){pending=false;const items=[...q];q.clear();items.forEach(swap);menuIcons()}
+function chestIcon(){document.querySelectorAll('.mq-chest:not([data-mqi])').forEach(c=>{c.dataset.mqi='1';c.insertAdjacentHTML('afterbegin',mqIcon('chest','chest-ic'))})}
+function flush(){pending=false;const items=[...q];q.clear();items.forEach(swap);menuIcons();chestIcon()}
 function start(){sprite();swap(document.body);
   new MutationObserver(ms=>{ms.forEach(m=>{if(m.type==='characterData')q.add(m.target);else m.addedNodes.forEach(a=>q.add(a))});if(!pending){pending=true;queueMicrotask(flush)}}).observe(document.body,{childList:true,subtree:true,characterData:true})}
 if(document.body)start();else document.addEventListener('DOMContentLoaded',start);
