@@ -3,7 +3,7 @@
  * Script properties required: WRITE_KEY, STAFF_PIN, ADMIN_PIN
  * Deploy as web app: Execute as ME, access ANYONE.
  */
-var TABS_PUBLIC = ['Config','Combos','Rewards','Cosmetics','Gadgets','Ranks','Places','News'];
+var TABS_PUBLIC = ['Config','Combos','Rewards','Cosmetics','Gadgets','Ranks','Places','News','Banners'];
 var EDITABLE = ['Config','Combos','Rewards','Cosmetics','Gadgets','Ranks','Places','News'];
 var MAX_ENTRIES = 200;
 
@@ -29,12 +29,15 @@ function safeCell_(v){ // block formula injection
 function publicConfig_(){
   var cache = CacheService.getScriptCache(), c = cache.get('cfg');
   if(c) return JSON.parse(c);
+  schema_();
   var o = {ok:true, updatedAt:now_()};
   TABS_PUBLIC.forEach(function(n){ o[n.toLowerCase()] = strip_(table_(n).rows); });
   o.rewards = o.rewards.filter(function(r){return bool_(r.active);});
   o.cosmetics = o.cosmetics.filter(function(r){return bool_(r.active);});
   o.gadgets = o.gadgets.filter(function(r){return bool_(r.active);});
   o.news = o.news.filter(function(r){return bool_(r.active);});
+  o.chatEnabled = bool_((findRow_('Config','Key','chat.enabled')||{}).Value);
+  o.banners = o.banners.filter(function(r){return bool_(r.active) && Number(r.endsAt)>Date.now();});
   o.places = o.places.filter(function(r){return bool_(r.active) && String(r.status)==='approved';});
   try{ cache.put('cfg', JSON.stringify(o), 60); }catch(e){}
   return o;
@@ -56,6 +59,11 @@ function doPost(e){
     var req = JSON.parse(e.postData.contents);
     var a = req.action, role = auth_(req, a);
     var h = HANDLERS[a]; if(!h) return out_({ok:false,error:'unknown action'});
+    if(role==='player'){
+      var pc = (req.player && req.player.code) || req.code;
+      if(pc && validCode_(pc)){ var pw = findRow_('Players','Code',pc);
+        if(pw && String(pw.Access)==='banned') return out_({ok:false, banned:true, error:'This Lunito has been removed from MondQuest.'}); }
+    }
     return out_(h(req, role));
   }catch(err){ return out_({ok:false,error:String(err.message||err)}); }
   finally{ try{lock.releaseLock();}catch(x){} }
@@ -64,7 +72,10 @@ function doPost(e){
 var ACTION_ROLE = { sync:'player', pull:'player',
   staffLookup:'staff', staffGrant:'staff', staffRedemptions:'staff', staffHandle:'staff',
   adminGet:'admin', adminSave:'admin', adminPlayers:'admin', adminSetTrust:'admin', adminReviewPlace:'admin', adminGrant:'admin', adminLog:'admin',
-  presenceSync:'player', staffPickups:'staff', staffPickupHandle:'staff', adminImportPlaces:'admin' };
+  presenceSync:'player', staffPickups:'staff', staffPickupHandle:'staff', adminImportPlaces:'admin',
+  photoUpload:'player', staffSetAge:'staff', adminPhotos:'admin', adminPhotoPick:'admin',
+  adminBanner:'admin', adminBannerStop:'admin', adminBanners:'admin',
+  chatSync:'player', adminChat:'admin', adminChatSetting:'admin', adminChatHide:'admin', adminSetAccess:'admin' };
 
 function auth_(req, a){
   var need = ACTION_ROLE[a]; if(!need) throw new Error('unknown action');
@@ -98,15 +109,39 @@ function validCode_(c){ return /^[A-Za-z0-9\-]{3,24}$/.test(String(c||'')); }
 var PLACE_TYPES = ['restaurant','cafe','bar','späti','shop','kindergarten','social','studio','rehearsal','cultural','other'];
 var TAB_HEADERS = {
   Pickups:['ReqId','PlayerCode','PlayerName','Flyers','Posters','Stickers','Status','RequestedAt','UpdatedAt','HandledBy','StaffNote'],
-  Presence:['Code','Name','Lat','Lng','Look','UpdatedAt']
+  Presence:['Code','Name','Lat','Lng','Look','UpdatedAt'],
+  Photos:['PhotoId','FileId','Url','Nick','PlayerCode','Country','City','Consent','UploadedAt','Pick'],
+  Banners:['id','emoji','text','startsAt','endsAt','active'],
+  Chat:['MsgId','PlayerCode','Name','Look','Text','At','Hidden']
 };
+// Adds a column to an existing tab when it is missing (older sheets keep working). fill(row) may return a starting value per row.
+function ensureCol_(tab, head, fill){
+  var s = ss_().getSheetByName(tab); if(!s) return;
+  var lc = s.getLastColumn(), h = s.getRange(1,1,1,lc).getValues()[0].map(String);
+  if(h.indexOf(head)>=0) return;
+  s.getRange(1,lc+1).setValue(head);
+  if(fill){ var v = s.getDataRange().getValues();
+    for(var i=1;i<v.length;i++){ var o={}; for(var j=0;j<h.length;j++) o[h[j]]=v[i][j]; var x=fill(o); if(x!=='' && x!=null) s.getRange(i+1,lc+1).setValue(x); } }
+}
+function schema_(){
+  var cache = CacheService.getScriptCache(); if(cache.get('schema3')) return;
+  ensureCol_('Players','Age');
+  ensure_('Banners'); ensure_('Photos'); ensure_('Chat');
+  ensureCol_('Players','Access');
+  if(!findRow_('Config','Key','chat.enabled')) appendObj_('Config',{Key:'chat.enabled',Value:'FALSE','What it does':'Moon chat on (TRUE) or off (FALSE). Easier to change in Admin > Chat.'});
+  cache.put('schema3','1',21600);
+}
 // Creates Pickups / Presence on first use, so older sheets keep working without manual steps.
 function ensure_(name){
   var s = ss_().getSheetByName(name);
-  if(!s){ s = ss_().insertSheet(name); s.appendRow(TAB_HEADERS[name]); s.setFrozenRows(1); }
+  if(!s){ s = ss_().insertSheet(name); s.appendRow(TAB_HEADERS[name]); s.setFrozenRows(1);  }
   return s;
 }
 function ms_(v){ var t = (v instanceof Date) ? v.getTime() : new Date(String(v||'')).getTime(); return isFinite(t) ? t : 0; }
+function lookJson_(l){ var o = {}; try{ if(typeof l==='string') l = JSON.parse(l); }catch(e){ l = {}; }
+  if(l && typeof l==='object'){ var n = 0; for(var k in l){ if(n>=14) break; var v = l[k];
+    if(/^[A-Za-z]{1,20}$/.test(k) && (typeof v==='number' || (typeof v==='string' && /^[#\w. -]{1,24}$/.test(v)))){ o[k]=v; n++; } } }
+  return JSON.stringify(o); }
 function pid_(code){ var h = 5381, s = 'mq:' + String(code); for(var i=0;i<s.length;i++){ h = ((h<<5)+h + s.charCodeAt(i)) | 0; } return 'p' + (h>>>0).toString(36); }
 function pickupPoints_(){ var r = findRow_('Config','Key','points.pickup'); var v = r ? Number(r.Value) : 5; return isFinite(v) ? v : 5; }
 function qty_(v, max){ v = Math.floor(Number(v)||0); return Math.max(0, Math.min(max, v)); }
@@ -116,12 +151,15 @@ function upsertPlayer_(p){
   var r = findRow_('Players','Code',p.code), t = now_();
   var vals = {Name:clean_(p.name,40), LastSeen:t, Wallet:Number(p.wallet)||0, Earned:Number(p.earned)||0,
     Flyers:Number(p.flyers)||0, Posters:Number(p.posters)||0, Stickers:Number(p.stickers)||0};
-  if(r){ setCells_('Players', r._row, vals); return r.Trust||'new'; }
-  vals.Code = p.code; vals.FirstSeen = t; vals.Trust = 'new'; appendObj_('Players', vals); return 'new';
+  // The age group is stored once; after that only staff/admin can change it.
+  var age = (p.age==='u16' || p.age==='16+') ? p.age : '';
+  if(r){ if(age && !r.Age) vals.Age = age; setCells_('Players', r._row, vals); return r.Trust||'new'; }
+  vals.Code = p.code; vals.FirstSeen = t; vals.Trust = 'new'; vals.Age = age; appendObj_('Players', vals); return 'new';
 }
 
 var HANDLERS = {
   sync: function(req){
+    schema_();
     var p = req.player||{}; var trust = upsertPlayer_(p);
     var entries = (req.entries||[]).slice(0,MAX_ENTRIES), n=0;
     var seen = {}; table_('Log').rows.slice(-1000).forEach(function(r){ seen[r.PlayerCode+'|'+r.EntryId]=1; });
@@ -132,6 +170,8 @@ var HANDLERS = {
     });
     (req.redemptions||[]).slice(0,20).forEach(function(rd){
       var id = clean_(rd.id,40); if(!id || findRow_('Redemptions','ReqId',id)) return;
+      var rw = findRow_('Rewards','id',rd.itemId), who = findRow_('Players','Code',p.code);
+      if(rw && who && String(who.Age)==='u16' && Number(rw.minAge)>=16) return; // hidden for this age group
       appendObj_('Redemptions',{ReqId:id,PlayerCode:p.code,PlayerName:clean_(p.name,40),Item:clean_(rd.item,60),Cost:Number(rd.cost)||0,
         Category:clean_(rd.category,20),Status:'pending',RequestedAt:now_(),UpdatedAt:now_()});
     });
@@ -158,7 +198,7 @@ var HANDLERS = {
       .map(function(r){ return {id:r.ReqId,status:r.Status,note:r.StaffNote}; });
     var pr = findRow_('Players','Code',code);
     return {ok:true, grants:strip_(grants).map(function(g){return {id:g.GrantId,type:g.Type,flyers:g.Flyers,posters:g.Posters,stickers:g.Stickers,points:g.Points,note:g.Note};}),
-      redemptions:reds, trust:pr?pr.Trust:'new',
+      redemptions:reds, trust:pr?pr.Trust:'new', age:pr&&pr.Age?String(pr.Age):'',
       pickups: (function(){ ensure_('Pickups'); return table_('Pickups').rows.filter(function(r){ return r.PlayerCode===code; }).slice(-30)
         .map(function(r){ return {id:r.ReqId,status:r.Status,note:r.StaffNote}; }); })()};
   },
@@ -167,7 +207,7 @@ var HANDLERS = {
     var code = String(req.code||'').trim(); var pr = findRow_('Players','Code',code);
     if(!pr) return {ok:true, found:false};
     var pend = table_('Redemptions').rows.filter(function(r){return r.PlayerCode===code && r.Status==='pending';});
-    return {ok:true, found:true, player:{code:pr.Code,name:pr.Name,wallet:pr.Wallet,earned:pr.Earned,flyers:pr.Flyers,posters:pr.Posters,stickers:pr.Stickers,trust:pr.Trust,lastSeen:pr.LastSeen}, pending:strip_(pend),
+    return {ok:true, found:true, player:{code:pr.Code,name:pr.Name,wallet:pr.Wallet,earned:pr.Earned,flyers:pr.Flyers,posters:pr.Posters,stickers:pr.Stickers,trust:pr.Trust,lastSeen:pr.LastSeen,age:pr.Age||''}, pending:strip_(pend),
       pickups: (function(){ ensure_('Pickups'); return strip_(table_('Pickups').rows.filter(function(r){return r.PlayerCode===code && r.Status==='pending';})); })()};
   },
   staffGrant: function(req, role){
@@ -212,12 +252,117 @@ var HANDLERS = {
     setCells_('Pickups', r._row, {Status:'accepted',Flyers:f,Posters:po,Stickers:st,UpdatedAt:now_(),HandledBy:by,StaffNote:clean_(req.note,100)});
     return {ok:true,status:'accepted',id:id};
   },
+  staffSetAge: function(req){
+    var r = findRow_('Players','Code',req.code); if(!r) throw new Error('Player not found');
+    if(req.age!=='u16' && req.age!=='16+') throw new Error('bad age group');
+    setCells_('Players', r._row, {Age:req.age});
+    if(req.age==='u16'){ var pz = findRow_('Presence','Code',req.code); if(pz) setCells_('Presence', pz._row, {Lat:'',Lng:'',UpdatedAt:now_()}); }
+    return {ok:true, age:req.age};
+  },
+  photoUpload: function(req){
+    var p = req.player||{}; if(!validCode_(p.code)) throw new Error('bad player code');
+    var pr = findRow_('Players','Code',p.code); if(!pr) throw new Error('Unknown player');
+    if(String(pr.Age)==='u16') throw new Error('Photos are not available for this player.');
+    if(req.consent!==true) throw new Error('Photo consent is missing.');
+    var fid = prop_('PHOTO_FOLDER_ID'); if(!fid) throw new Error('The photo folder is not set up yet.');
+    var id = clean_(req.id,40); if(!id) throw new Error('missing photo id');
+    if(findRow_('Photos','PhotoId',id)) return {ok:true, duplicate:true};
+    var b64 = String(req.image||''); if(!b64 || b64.length>900000) throw new Error('Photo too large');
+    var today = now_().slice(0,10);
+    var n = table_('Photos').rows.filter(function(r){ return r.PlayerCode===p.code && String(r.UploadedAt).slice(0,10)===today; }).length;
+    if(n>=10) throw new Error('Enough photos for today, Lunito!');
+    var bytes = Utilities.base64Decode(b64);
+    if(!(bytes.length>4 && (bytes[0]&255)===255 && (bytes[1]&255)===216)) throw new Error('That does not look like a JPEG photo');
+    var nick = clean_(pr.Name||p.name,24).replace(/[^A-Za-z0-9_-]+/g,'_');
+    var name = 'sticker_' + now_().slice(0,19).replace(/[:T]/g,'-') + '_' + nick + '.jpg';
+    var file = DriveApp.getFolderById(fid).createFile(Utilities.newBlob(bytes,'image/jpeg',name));
+    appendObj_('Photos',{PhotoId:id,FileId:file.getId(),Url:file.getUrl(),Nick:clean_(pr.Name||p.name,40),PlayerCode:p.code,
+      Country:clean_(req.country,60),City:clean_(req.city,60),Consent:'yes',UploadedAt:now_(),Pick:''});
+    return {ok:true, url:file.getUrl()};
+  },
+  adminPhotos: function(req){
+    var rows = table_('Photos').rows.slice().reverse();
+    if(req.pick) rows = rows.filter(function(r){ return r.Pick==='yes'; });
+    var start = Math.max(0, Number(req.offset)||0), page = rows.slice(start, start+12);
+    var items = page.map(function(r){
+      var o = {id:r.PhotoId,url:r.Url,nick:r.Nick,player:r.PlayerCode,country:r.Country,city:r.City,at:r.UploadedAt,pick:r.Pick==='yes',consent:r.Consent,thumb:''};
+      try{
+        var f = DriveApp.getFileById(r.FileId), b = f.getThumbnail() || f.getBlob(), by = b.getBytes();
+        if(by.length<260000) o.thumb = 'data:'+b.getContentType()+';base64,'+Utilities.base64Encode(by);
+      }catch(e){}
+      return o;
+    });
+    return {ok:true, items:items, total:rows.length, next:(start+12<rows.length)?start+12:null, folder:prop_('PHOTO_FOLDER_ID')?true:false};
+  },
+  chatSync: function(req){
+    var p = req.player||{}; if(!validCode_(p.code)) throw new Error('bad player code');
+    schema_();
+    if(!bool_((findRow_('Config','Key','chat.enabled')||{}).Value)) return {ok:true, enabled:false, messages:[]};
+    var pr = findRow_('Players','Code',p.code), canPost = !!pr && String(pr.Access)!=='nochat', nowMs = Date.now();
+    var text = clean_(req.text,140).replace(/\s+/g,' ').trim();
+    if(text){
+      if(!canPost) throw new Error("You can't post in the chat right now.");
+      if(/https?:|www\.|\.(com|de|net|org|io|me|ly|gg)\b|@\w/i.test(text)) throw new Error('Links and @handles are not allowed here. Keep it simple and friendly!');
+      var all = table_('Chat').rows, last = null;
+      for(var i=all.length-1;i>=0;i--){ if(all[i].PlayerCode===p.code){ last = all[i]; break; } }
+      if(last && nowMs - Number(last.At) < 5000) throw new Error('Easy, Lunito! Give it a few seconds.');
+      appendObj_('Chat', {MsgId:'m'+nowMs.toString(36)+Math.floor(Math.random()*1296).toString(36), PlayerCode:p.code, Name:clean_(pr.Name,40), Look:lookJson_(req.look), Text:text, At:nowMs, Hidden:''});
+      var sh = sh_('Chat'), n = sh.getLastRow()-1; if(n>250) sh.deleteRows(2, n-200);
+    }
+    var msgs = table_('Chat').rows.filter(function(r){ return String(r.Hidden)!=='yes'; }).slice(-80).map(function(r){
+      var lk = {}; try{ lk = JSON.parse(r.Look||'{}'); }catch(e){}
+      return {id:r.MsgId, pid:pid_(r.PlayerCode), me:r.PlayerCode===p.code, name:r.Name, look:lk, text:r.Text, at:Number(r.At)}; });
+    return {ok:true, enabled:true, canPost:canPost, messages:msgs};
+  },
+  adminChat: function(){
+    ensure_('Chat');
+    var rows = table_('Chat').rows.slice(-60).reverse().map(function(r){
+      var pw = findRow_('Players','Code',r.PlayerCode);
+      return {id:r.MsgId, code:r.PlayerCode, name:r.Name, text:r.Text, at:Number(r.At), hidden:String(r.Hidden)==='yes', access:pw?String(pw.Access||''):''}; });
+    return {ok:true, enabled:bool_((findRow_('Config','Key','chat.enabled')||{}).Value), rows:rows};
+  },
+  adminChatSetting: function(req){
+    var v = req.enabled===true ? 'TRUE' : 'FALSE', r = findRow_('Config','Key','chat.enabled');
+    if(r) setCells_('Config', r._row, {Value:v}); else appendObj_('Config',{Key:'chat.enabled',Value:v,'What it does':'Moon chat on (TRUE) or off (FALSE).'});
+    bust_(); return {ok:true, enabled:v==='TRUE'};
+  },
+  adminChatHide: function(req){
+    var r = findRow_('Chat','MsgId',req.id); if(!r) throw new Error('Message not found');
+    setCells_('Chat', r._row, {Hidden: req.hide===false ? '' : 'yes'}); return {ok:true};
+  },
+  adminSetAccess: function(req){
+    var a = String(req.access||''); if(['','nochat','banned'].indexOf(a)<0) throw new Error('bad access value');
+    if(!validCode_(req.code)) throw new Error('bad player code');
+    var r = findRow_('Players','Code',req.code); if(!r) throw new Error('Player not found');
+    setCells_('Players', r._row, {Access:a});
+    if(a==='banned'){ var c = table_('Chat').rows; c.forEach(function(m){ if(m.PlayerCode===req.code && String(m.Hidden)!=='yes') setCells_('Chat', m._row, {Hidden:'yes'}); }); }
+    return {ok:true};
+  },
+  adminBanner: function(req){
+    var text = clean_(req.text,160).trim(); if(!text) throw new Error('Write a message first.');
+    var hrs = Math.max(0.25, Math.min(168, Number(req.hours)||3)), t = Date.now(), id = 'bn' + t.toString(36);
+    ensure_('Banners');
+    appendObj_('Banners', {id:id, emoji:clean_(req.emoji||'📣',8), text:text, startsAt:t, endsAt:t+Math.round(hrs*3600000), active:true});
+    bust_(); return {ok:true, id:id};
+  },
+  adminBannerStop: function(req){
+    var r = findRow_('Banners','id',req.id); if(!r) throw new Error('Announcement not found');
+    setCells_('Banners', r._row, {active:false}); bust_(); return {ok:true};
+  },
+  adminBanners: function(){ ensure_('Banners'); return {ok:true, rows:strip_(table_('Banners').rows.slice(-30).reverse())}; },
+  adminPhotoPick: function(req){
+    var r = findRow_('Photos','PhotoId',req.id); if(!r) throw new Error('Photo not found');
+    setCells_('Photos', r._row, {Pick: req.pick===true ? 'yes' : ''});
+    return {ok:true};
+  },
   presenceSync: function(req){
     var p = req.player||{}; if(!validCode_(p.code)) throw new Error('bad player code');
     ensure_('Presence');
     var pr = findRow_('Players','Code',p.code); if(pr) setCells_('Players', pr._row, {LastSeen:now_()});
     var row = findRow_('Presence','Code',p.code), t = now_();
-    if(req.stop){
+    var minor = !!(pr && String(pr.Age)==='u16');
+    if(minor){ if(row && row.Lat!=='') setCells_('Presence', row._row, {Lat:'',Lng:'',UpdatedAt:t}); }
+    else if(req.stop){
       if(row) setCells_('Presence', row._row, {Lat:'',Lng:'',UpdatedAt:t});
     } else if(req.lat!==undefined && req.lng!==undefined){
       var lat=Number(req.lat), lng=Number(req.lng);
@@ -226,7 +371,7 @@ var HANDLERS = {
       if(row) setCells_('Presence', row._row, vals); else { vals.Code=p.code; appendObj_('Presence', vals); }
     }
     var nowMs = Date.now(), sharing = [], sharingIds = {};
-    table_('Presence').rows.forEach(function(r){
+    if(!minor) table_('Presence').rows.forEach(function(r){
       if(r.Lat==='' || r.Lng==='' || nowMs-ms_(r.UpdatedAt) > 30*60000) return;
       var look = {}; try{ look = JSON.parse(String(r.Look||'{}')); }catch(e){}
       var id = pid_(r.Code); sharingIds[id]=1;
@@ -262,6 +407,7 @@ var HANDLERS = {
     return {ok:true, added:added, skipped:skipped, invalid:bad};
   },
   adminGet: function(){
+    schema_();
     var o={ok:true}; EDITABLE.concat(['Redemptions']).forEach(function(n){ var t=table_(n); o[n]={headers:t.h,rows:strip_(t.rows)}; });
     return o;
   },

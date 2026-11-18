@@ -23,6 +23,8 @@ socks:`<path d="M14 5h13v19l11 9a6 6 0 0 1-3 10l-7 2c-5 1-8-2-10-5L14 28z" fill=
 cap:`<path d="M7 31a17 17 0 0 1 34 0z" fill="${B}"/><path d="M5 31h25c10 0 13 4 13 7H12c-4 0-7-3-7-7z" fill="${Y}"/><circle cx="24" cy="14" r="2.4" fill="${Y}" stroke-width="2"/><path d="M24 14v17" stroke-width="2"/>`,
 gift:`<rect x="6" y="19" width="36" height="9" rx="2" fill="${P}"/><rect x="9" y="28" width="30" height="15" rx="2" fill="${C}"/><path d="M24 19v24" stroke="${Y}" stroke-width="6"/><path d="M24 19c-4-9-12-8-11-3s8 4 11 3zM24 19c4-9 12-8 11-3s-8 4-11 3z" fill="${Y}"/>`,
 camera:`<path d="M6 16a3 3 0 0 1 3-3h6l3-4h12l3 4h6a3 3 0 0 1 3 3v22a3 3 0 0 1-3 3H9a3 3 0 0 1-3-3z" fill="${W}"/><circle cx="24" cy="26" r="9" fill="${N}"/><circle cx="24" cy="26" r="5.5" fill="${C}"/><circle cx="21.5" cy="23.5" r="1.8" fill="#fff" stroke="none"/><circle cx="37" cy="18" r="1.8" fill="${P}" stroke-width="1.4"/>`,
+chat:`<path d="M8 8h32a4 4 0 0 1 4 4v18a4 4 0 0 1-4 4H25l-9 8v-8H8a4 4 0 0 1-4-4V12a4 4 0 0 1 4-4z" fill="${B}"/><circle cx="16" cy="21" r="2.7" fill="${W}"/><circle cx="24" cy="21" r="2.7" fill="${W}"/><circle cx="32" cy="21" r="2.7" fill="${W}"/>`,
+shirt:`<path d="M17 5 4 11l5 10 6-3v24h18V18l6 3 5-10-13-6c-1 4-4 6-7 6s-6-2-7-6z" fill="${P}"/><path d="M20 5c1 3 3 5 4 5s3-2 4-5" fill="${W}"/>`,
 gear:`<path d="M21 4h6l1 5a15 15 0 0 1 4 2l5-2 3 5-4 3a15 15 0 0 1 0 5l4 3-3 5-5-2a15 15 0 0 1-4 2l-1 5h-6l-1-5a15 15 0 0 1-4-2l-5 2-3-5 4-3a15 15 0 0 1 0-5l-4-3 3-5 5 2a15 15 0 0 1 4-2z" fill="${Y}"/><circle cx="24" cy="24" r="6" fill="${C}"/>`,
 bell:`<path d="M24 5a3 3 0 0 1 3 3v1.6c5 1.6 8 6 8 11.4v7l4 5H9l4-5v-7c0-5.400 3-9.800 8-11.400V8a3 3 0 0 1 3-3z" fill="${Y}"/><path d="M19 38a5 5 0 0 0 10 0" fill="${O}"/>${hl('M16 20a8 8 0 0 1 4-6')}`,
 globe:`<circle cx="24" cy="24" r="19" fill="${C}"/><path d="M8 20c6-2 8 2 12 0s4-8 10-8M14 36c2-4 6-2 8-6s8-2 12-6M33 40c0-5 5-6 8-8" fill="none" stroke="${G}" stroke-width="5"/><ellipse cx="24" cy="24" rx="9" ry="19" fill="none" stroke-width="1.8"/>`,
@@ -70,7 +72,7 @@ bolt:`<path d="M27 3L9 27h12l-4 18 22-26H26z" fill="${Y}"/>${hl('M25 9l-9 13','.
 rank:`<path d="M24 4l17 6v12c0 11-7 18-17 22C14 40 7 33 7 22V10z" fill="${B}"/><path d="M24 12l3.500 7 7.500 1-5.500 5.200 1.400 7.600-6.900-3.800-6.900 3.800 1.400-7.600L13 20l7.500-1z" fill="${Y}" stroke-width="2"/>`,
 dot:`<circle cx="24" cy="24" r="8" fill="${Y}"/>`
 };
-const ALIAS={'⚙️':'gear','⚙':'gear','🌙':'moon','◉':'moon','☾':'moon','✨':'sparkle','✦':'sparkle','✧':'sparkle','📍':'pin','📌':'pin','🔭':'scope','⭐':'star','★':'star','🪐':'planet','☕':'cup','🪧':'poster','📣':'megaphone','📡':'dish','☄️':'comet','☄':'comet','🎪':'tent','🍽️':'plate','🍽':'plate','🍺':'beer','🛒':'cart','🛍️':'shopbag','🛍':'shopbag','🧸':'teddy','🏛️':'building','🏛':'building','🎸':'guitar','🎼':'music','🎭':'mask','✉':'mail','✉️':'mail','👤':'user','🎩':'hat','👑':'crown','🕶️':'shades','🕶':'shades','🎀':'bow','🪽':'wings','🪖':'helmet','🫧':'bubble','🚀':'rocket','🧰':'toolbox','📬':'mail','🔎':'magnifier','✕':'cross','⚑':'flag','📦':'package','🚚':'truck','🖼️':'frame','🖼':'frame','🏆':'trophy','📖':'book','💚':'heartg','🎟️':'ticket','🎟':'ticket','🎉':'party','🧡':'hearto','🔒':'lock','✓':'check','🛎️':'bell','🛎':'bell'};
+const ALIAS={'💬':'chat','👕':'shirt','⚙️':'gear','⚙':'gear','🌙':'moon','◉':'moon','☾':'moon','✨':'sparkle','✦':'sparkle','✧':'sparkle','📍':'pin','📌':'pin','🔭':'scope','⭐':'star','★':'star','🪐':'planet','☕':'cup','🪧':'poster','📣':'megaphone','📡':'dish','☄️':'comet','☄':'comet','🎪':'tent','🍽️':'plate','🍽':'plate','🍺':'beer','🛒':'cart','🛍️':'shopbag','🛍':'shopbag','🧸':'teddy','🏛️':'building','🏛':'building','🎸':'guitar','🎼':'music','🎭':'mask','✉':'mail','✉️':'mail','👤':'user','🎩':'hat','👑':'crown','🕶️':'shades','🕶':'shades','🎀':'bow','🪽':'wings','🪖':'helmet','🫧':'bubble','🚀':'rocket','🧰':'toolbox','📬':'mail','🔎':'magnifier','✕':'cross','⚑':'flag','📦':'package','🚚':'truck','🖼️':'frame','🖼':'frame','🏆':'trophy','📖':'book','💚':'heartg','🎟️':'ticket','🎟':'ticket','🎉':'party','🧡':'hearto','🔒':'lock','✓':'check','🛎️':'bell','🛎':'bell'};
 window.MQ_ICON_NAMES=Object.keys(SYM);
 const attrs='viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"';
 function sprite(){if(document.getElementById('mq-sprite'))return;const d=document.createElement('div');d.id='mq-sprite';d.setAttribute('aria-hidden','true');d.style.cssText='position:absolute;width:0;height:0;overflow:hidden';
@@ -93,7 +95,7 @@ function swapText(n){const t=n.nodeValue;RE.lastIndex=0;if(!RE.test(t))return;RE
     const u=document.createElementNS('http://www.w3.org/2000/svg','use');u.setAttribute('href','#i-'+name);s.appendChild(u);f.appendChild(s);last=m.index+m[0].length}
   if(last<t.length)f.appendChild(document.createTextNode(t.slice(last)));if(n.parentNode)n.parentNode.replaceChild(f,n)}
 let pending=false;const q=new Set();
-const MENU_ICON={missions:'star',places:'pin',pickup:'tent',shop:'container',settings:'gear',players:'user',adventures:'rocket',ranking:'trophy',spotted:'scope',courier:'user',announcements:'bell',manual:'book',more:'sparkle'};
+const MENU_ICON={missions:'star',places:'pin',pickup:'tent',shop:'container',settings:'gear',chat:'chat',wardrobe:'shirt',players:'user',adventures:'rocket',ranking:'trophy',spotted:'scope',courier:'user',announcements:'bell',manual:'book',more:'sparkle'};
 function menuIcons(){document.querySelectorAll('.lunar-sheet .button[data-view],.menu-grid .button[data-view],.more-grid .button[data-view]').forEach(b=>{if(b.dataset.mqi)return;const ic=MENU_ICON[b.dataset.view];const s=b.querySelector(':scope>svg:not(.mq-i)');if(ic&&s){s.outerHTML=mqIcon(ic,'menu-ic');}b.dataset.mqi='1'})}
 function chestIcon(){document.querySelectorAll('.mq-chest:not([data-mqi])').forEach(c=>{c.dataset.mqi='1';c.insertAdjacentHTML('afterbegin',mqIcon('chest','chest-ic'))})}
 function flush(){pending=false;const items=[...q];q.clear();items.forEach(swap);menuIcons();chestIcon()}
@@ -107,11 +109,11 @@ const chip=(ic,txt)=>`<span class="gchip">${mqIcon(ic)}<b>${txt}</b></span>`;
 function fmt(n){return Number.isInteger(n)?String(n):String(+n.toFixed(2))}
 function guideSteps(){
   const P=CONFIG.points,fl=Math.max(1,Math.round(1/(P.deliverPerItem||.2)));
-  const rw=(state.rewards||[]).slice().sort((a,b)=>a.cost-b.cost).slice(0,4);
+  const rw=mqVisibleRewards().slice().sort((a,b)=>a.cost-b.cost).slice(0,4);
   return[
    {ic:'tent',t:'Grab your gear',b:'Collect flyers, posters and stickers at the circus tent. Staff can top you up.',chips:[chip('flyer','Flyers'),chip('poster','Posters'),chip('sticker','Stickers'),chip('moon','+'+P.pickup)]},
    {ic:'pin',t:'Drop them in town',b:'Leave them in cafés, shops and bars on the map. Found a new spot? Add it.',chips:[chip('flyer',fl+' = 1'),chip('poster','+'+fmt(P.posterPerItem)),chip('pin','New +'+P.discover),chip('scope','Far sticker +5 to +'+CONFIG.spotted.max)]},
-   {ic:'moon',t:'Earn Mondinos',b:'Every drop pays in Mondinos. Photos, combos and regular days add bonuses. Unused material expires after '+CONFIG.pickup.expiryDays+' days.',chips:[chip('camera','Photo +'+P.deliveryPhoto),chip('star','Combos'),chip('bolt',CONFIG.regularity.days+' days / week'),chip('bell',CONFIG.pickup.expiryDays+' days')]},
+   {ic:'moon',t:'Earn Mondinos',b:'Every drop pays in Mondinos. '+(mqAgeU16()?'Combos and regular days add bonuses.':'Photos, combos and regular days add bonuses.')+' Unused material expires after '+CONFIG.pickup.expiryDays+' days.',chips:[...(mqAgeU16()?[]:[chip('camera','Photo +'+P.deliveryPhoto)]),chip('star','Combos'),chip('bolt',CONFIG.regularity.days+' days / week'),chip('bell',CONFIG.pickup.expiryDays+' days')]},
    {ic:'rocket',t:'Rank up',b:'Lifetime Mondinos raise your rank. Adventures multiply your points and drop minerals and chests.',chips:[chip('rank','Ranks'),chip('comet','x2 · x3'),chip('planet','Minerals'),chip('chest','Chests')]},
    {ic:'container',t:'Open Cargo',b:'Craft gadgets, dress your Lunino, or claim real prizes at the circus with your player code.',chips:rw.map(r=>chip(rewardIcon(r),r.cost)).concat([chip('user','Your code')])}
   ]}

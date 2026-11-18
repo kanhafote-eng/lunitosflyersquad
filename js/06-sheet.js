@@ -12,13 +12,14 @@ function setPath(root,key,val){const p=key.split('.');let o=root;for(let i=0;i<p
 let applied=false;
 function applyRemote(r){
   if(!r||!r.ok)return;
+  try{window.mqChatEnabled=r.chatEnabled===true;if(Array.isArray(r.banners)){window.mqBanners=r.banners.map(x=>({id:String(x.id),emoji:String(x.emoji||'📣'),text:String(x.text||''),endsAt:Number(x.endsAt)||0,startsAt:Number(x.startsAt)||0}));if(window.mqBannersToNews)mqBannersToNews()}setTimeout(()=>{try{if(window.mqDrawBanner)mqDrawBanner();if(window.mqPaintChat)mqPaintChat()}catch(e){}},50)}catch(e){}
   (r.config||[]).forEach(x=>{const k=String(x.Key||x.key||'');const v=num(x.Value!==undefined?x.Value:x.value);if(k)setPath(CONFIG,k,v)});
   if(r.combos&&r.combos.length)CONFIG.combos=r.combos.map(c=>({id:String(c.id),stat:String(c.stat),at:num(c.at),bonus:num(c.bonus),label:String(c.label)}));
   if(r.ranks&&r.ranks.length){MQ_RANKS.length=0;r.ranks.sort((a,b)=>num(a.rank)-num(b.rank)).forEach(x=>MQ_RANKS.push([String(x.name),num(x.earned)]))}
   // prizes: keep local artwork/description by id, take name, price, stock and visibility from the sheet
   if(r.rewards){const old=Object.fromEntries(state.rewards.map(x=>[x.id,x]));const ids=new Set();
-    const next=r.rewards.map((x,i)=>{const o=old[x.id]||{};ids.add(x.id);return{...o,id:String(x.id),name:String(x.name),category:String(x.category),cost:num(x.cost),stock:num(x.stock),description:o.description||(x.category+' · prize Zirkus Mond'),svg:o.svg||DEFAULT_REWARD_SVGS[i%DEFAULT_REWARD_SVGS.length]}});
-    state.rewards=next;CONFIG.rewards=next.map(x=>({id:x.id,name:x.name,category:x.category,cost:x.cost}))}
+    const next=r.rewards.map((x,i)=>{const o=old[x.id]||{};ids.add(x.id);return{...o,id:String(x.id),name:String(x.name),category:String(x.category),cost:num(x.cost),stock:num(x.stock),minAge:num(x.minAge),description:o.description||(x.category+' · prize Zirkus Mond'),svg:o.svg||DEFAULT_REWARD_SVGS[i%DEFAULT_REWARD_SVGS.length]}});
+    state.rewards=next;CONFIG.rewards=next.map(x=>({id:x.id,name:x.name,category:x.category,cost:x.cost,minAge:x.minAge}))}
   if(r.cosmetics){const m=Object.fromEntries(r.cosmetics.map(x=>[x.id,x]));
     CONFIG.cosmetics.forEach(c=>{const x=m[c.id];c.hidden=!x;if(x){c.cost=num(x.cost);c.rank=num(x.rank)||c.rank}});
     CONFIG.cosmetics=CONFIG.cosmetics.filter(c=>!c.hidden||num(c.cost)===0)}
@@ -35,13 +36,13 @@ function applyRemote(r){
 }
 const CACHE='mq-remote';
 try{const c=JSON.parse(localStorage.getItem(CACHE)||'null');if(c)applyRemote(c)}catch(e){}
-async function post(o){const r=await fetch(C.sheetUrl,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({key:C.writeKey,...o})});return r.json()}
+async function post(o){const r=await fetch(C.sheetUrl,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({key:C.writeKey,...o})});const j=await r.json();if(j&&j.banned&&window.mqBanned)window.mqBanned();return j}
 async function loadConfig(){try{const r=await (await fetch(C.sheetUrl+'?action=config')).json();if(r.ok){try{localStorage.setItem(CACHE,JSON.stringify(r))}catch(e){}applyRemote(r);save0();return true}}catch(e){}return false}
 function save0(){try{localStorage.setItem(CONFIG.storageKey,JSON.stringify(state))}catch(e){}}
-function refreshView(){try{if(typeof currentView==='string'&&!document.querySelector('input:focus,textarea:focus,select:focus'))go(currentView)}catch(e){}}
+function refreshView(){try{if(state.user&&!state.user.age&&window.mqAgeScreen){if(document.querySelector('.age-btns[data-legacy]'))return}if(currentView==='chat'||currentView==='wardrobe')return;if(typeof currentView==='string'&&!document.querySelector('input:focus,textarea:focus,select:focus'))go(currentView)}catch(e){}}
 
 function snapshot(){const u=state.user;if(!u)return null;const inv=state.inventory||{};
-  return{code:u.code,name:u.name,wallet:state.wallet,earned:state.earned,flyers:inv.flyers||0,posters:inv.posters||0,stickers:inv.stickers||0}}
+  return{code:u.code,name:u.name,wallet:state.wallet,earned:state.earned,flyers:inv.flyers||0,posters:inv.posters||0,stickers:inv.stickers||0,age:u.age||''}}
 let busy=false;
 async function sync(){
   if(busy||!state.user||!navigator.onLine)return;busy=true;const sy=S();
@@ -59,6 +60,7 @@ async function pull(){
   try{
     const res=await post({action:'pull',code:state.user.code,ack:sy.ack});
     if(!res||!res.ok)return;sy.ack=[];
+    if((res.age==='u16'||res.age==='16+')&&state.user.age!==res.age){state.user.age=res.age;changed=true;if(res.age==='u16'){try{stopLocationShare()}catch(e){}}}
     (res.grants||[]).forEach(g=>{
       if(!sy.applied.includes(g.id)){
         const q={flyers:num(g.flyers),posters:num(g.posters),stickers:num(g.stickers)};
@@ -99,19 +101,21 @@ let rOnline=[],rSharing=[];
 window.mqPresence={online:()=>rOnline,sharing:()=>rSharing};
 async function presence(extra){
   if(!state.user||!navigator.onLine)return;
+  if(mqAgeU16())extra=undefined;
   try{const look={...playerSnapshot()};delete look.code;delete look.name;
     const res=await post({action:'presenceSync',player:{code:state.user.code,name:state.user.name},look,...(extra||{})});
     if(res&&res.ok){rOnline=res.online||[];rSharing=res.sharing||[];try{refreshPresenceList();if(leafletInstance)refreshMarkers();if(currentView==='players'&&window.playersScreen&&!document.querySelector('input:focus'))playersScreen()}catch(e){}}
   }catch(e){}
 }
 const _live=livePresence;
-livePresence=function(){const m=new Map();
+livePresence=function(){if(mqAgeU16())return [];const m=new Map();
   rSharing.filter(x=>!x.me).forEach(x=>m.set('r:'+x.pid,{code:'',name:x.name,avatar:x.look,lat:x.lat,lng:x.lng,updatedAt:x.updatedAt,expires:x.updatedAt+30*60000,remote:true}));
   _live().forEach(x=>m.set(String(x.code),x));return [...m.values()]};
 refreshPresenceList=function(){const el=document.getElementById('online-list');if(!el)return;
   const on=rOnline.filter(x=>!x.me);
   el.innerHTML=on.length?'<b>Online now ('+on.length+')</b><br>'+on.map(x=>'<span>'+(x.sharing?'📍':'●')+' '+esc(x.name)+(x.sharing?' · sharing location':'')+'</span>').join(' '):(rOnline.length?'No other players online right now.':'Checking who is online…')};
 shareLocation=function(){
+  if(mqAgeU16())return;
   if(!state.user?.code){toast('Create a profile first.');return}
   if(!navigator.geolocation){toast('Geolocation is unavailable in this browser.');return}
   if(!window.isSecureContext&&location.hostname!=='localhost'){toast('Location requires HTTPS or localhost.');return}
@@ -128,6 +132,39 @@ setInterval(()=>{if(document.hidden||!state.user)return;
   if(mine&&navigator.geolocation)navigator.geolocation.getCurrentPosition(p=>{try{const e={...mine,lat:p.coords.latitude,lng:p.coords.longitude,updatedAt:Date.now()};localStorage.setItem(presenceKey(mine.code),JSON.stringify(e))}catch(x){}presence({lat:p.coords.latitude,lng:p.coords.longitude})},()=>presence(),{timeout:8000,maximumAge:60000});
   else presence()},60000);
 setTimeout(presence,2500);
+
+
+/* ---------- sticker photos -> Google Drive (16+) ---------- */
+function mqResizeJpeg(file,max,q){return new Promise((res,rej)=>{const url=URL.createObjectURL(file),img=new Image();
+  img.onload=()=>{const s=Math.min(1,max/Math.max(img.width,img.height)),c=document.createElement('canvas');c.width=Math.max(1,Math.round(img.width*s));c.height=Math.max(1,Math.round(img.height*s));
+    c.getContext('2d').drawImage(img,0,0,c.width,c.height);URL.revokeObjectURL(url);const d=c.toDataURL('image/jpeg',q);res(d.slice(d.indexOf(',')+1))};
+  img.onerror=()=>{URL.revokeObjectURL(url);rej(new Error('bad image'))};img.src=url})}
+window.mqResizeJpeg=mqResizeJpeg;
+const PQ='mq-photo-queue',pqGet=()=>{try{return JSON.parse(localStorage.getItem(PQ)||'[]')}catch(e){return[]}},pqSet=a=>{try{localStorage.setItem(PQ,JSON.stringify(a));return true}catch(e){return false}};
+window.mqUploadStickerPhoto=async function(rec,file){
+  if(mqAgeU16()||!file)return;
+  let image;try{image=await mqResizeJpeg(file,1080,.7)}catch(e){toast('Could not prepare the photo.');return}
+  const q=pqGet();q.push({id:'ph-'+rec.id,image,country:rec.addressParts?.country||'',city:rec.addressParts?.city||''});
+  pqSet(q.slice(-4));flushPhotos()};
+let flushing=false;
+async function flushPhotos(){
+  if(flushing||!state.user||!navigator.onLine||mqAgeU16())return;flushing=true;
+  try{let q=pqGet();
+    for(const it of q.slice()){
+      try{const res=await post({action:'photoUpload',id:it.id,player:{code:state.user.code,name:state.user.name},consent:true,image:it.image,country:it.country,city:it.city});
+        if(res&&res.ok){q=q.filter(x=>x.id!==it.id);pqSet(q);toast('Your sticker photo reached the circus. Thank you!')}
+        else if(res&&/not available|consent|too large|JPEG|Enough photos|Unknown player/i.test(res.error||'')){q=q.filter(x=>x.id!==it.id);pqSet(q)}
+        else break}catch(e){break}}
+  }finally{flushing=false}}
+setInterval(()=>{if(!document.hidden)flushPhotos()},60000);setTimeout(flushPhotos,4000);
+
+
+/* ---------- open chat ---------- */
+window.mqChat={async sync(text){
+  const look={};Object.keys(CONFIG.look.defaults||{}).forEach(k=>{look[k]=state.user[k]});
+  const res=await post({action:'chatSync',player:{code:state.user.code,name:state.user.name},look,...(text?{text}:{})});
+  if(!res||!res.ok)throw new Error((res&&res.error)||'Chat is taking a nap. Try again soon.');
+  window.mqChatEnabled=res.enabled!==false;return res}};
 
 // debounce syncing after every save
 const _save=save;let t=null;

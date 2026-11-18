@@ -1,0 +1,182 @@
+/* 09-lunitos.js — location notice + glowing button, photo notice, announcements banner */
+(function(){
+'use strict';
+const E=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+function modal(html){
+  closeModal();
+  const o=document.createElement('div');o.className='mq9-modal';o.id='mq9-modal';o.setAttribute('role','dialog');o.setAttribute('aria-modal','true');
+  o.innerHTML=`<div class="mq9-box">${html}</div>`;document.body.appendChild(o);
+  const b=o.querySelector('button');if(b)try{b.focus()}catch(e){}}
+function closeModal(){const o=document.getElementById('mq9-modal');if(o)o.remove()}
+
+/* ---------- location: friendly notice the first time, then a glowing button ---------- */
+const _share=shareLocation;
+shareLocation=function(){
+  if(state.user&&state.user.glowSeen)return _share.apply(this,arguments);
+  modal(`<div class="mq9-emoji" aria-hidden="true">✨</div><h2>Want to glow on the map?</h2><p>Other Lunitos will see roughly where you are (about 100 m) for 30 minutes. You can switch it off anytime by tapping the glowing Location button.</p><div class="mq9-row"><button type="button" class="button primary" data-mq9="glow-yes">Let's glow</button><button type="button" class="button quiet" data-mq9="glow-no">Not now</button></div>`)};
+const _stop=stopLocationShare;
+stopLocationShare=function(){const r=_stop.apply(this,arguments);paintGlow();return r};
+function glowing(){
+  try{return !!state.user&&livePresence().some(x=>!x.remote&&String(x.code)===String(state.user.code))}catch(e){return false}}
+function paintGlow(){
+  const b=document.querySelector('.location-tool');if(!b)return;
+  const on=glowing();b.classList.toggle('glow',on);
+  b.setAttribute('aria-label',on?'You are glowing on the map. Tap to switch off':'Share your current location, optional');
+  b.setAttribute('aria-pressed',on?'true':'false')}
+setInterval(paintGlow,1500);
+
+/* ---------- sticker photo notice ---------- */
+window.mqPhotoConsentBox=function(){
+  return `<div class="mq9-consent"><p>Nice find! 📸 We might share your photo on our social media — so keep faces out of the shot, just the sticker please! 🙂</p><label class="mq9-check"><input type="checkbox" name="photoOk"> <span>Sounds good!</span></label></div>`};
+window.mqPhotoConsentOk=function(f){return !!(f&&f.elements&&f.elements.photoOk&&f.elements.photoOk.checked)};
+
+/* ---------- announcements banner on the main screen ---------- */
+function seen(){try{return JSON.parse(localStorage.getItem('mq-banner-seen')||'[]')}catch(e){return []}}
+function markSeen(id){try{const a=seen();if(!a.includes(id)){a.push(id);localStorage.setItem('mq-banner-seen',JSON.stringify(a.slice(-40)))}}catch(e){}}
+function drawBanner(){
+  const w=document.querySelector('.map-world');let el=document.getElementById('mq-banner');
+  const now=Date.now(),s=seen();
+  const list=(window.mqBanners||[]).filter(b=>b.text&&b.endsAt>now&&b.startsAt<=now+120000&&!s.includes(b.id));
+  const b=list[list.length-1];
+  if(!w||!b){if(el)el.remove();return}
+  if(el&&el.dataset.id===b.id)return;
+  if(el)el.remove();
+  el=document.createElement('div');el.id='mq-banner';el.className='mq-banner';el.dataset.id=b.id;el.setAttribute('role','status');
+  el.innerHTML=`<span class="mq-banner-e" aria-hidden="true">${E(b.emoji)}</span><p>${E(b.text)}</p><button type="button" data-mq9="banner-x" aria-label="Close announcement">×</button>`;
+  w.appendChild(el)}
+function badge(){try{const el=document.querySelector('[data-unread-count]');if(!el)return;const n=unreadNews();el.textContent=n||'';el.hidden=!n}catch(e){}}
+window.mqDrawBanner=function(){badge();drawBanner()};
+window.mqBannersToNews=function(){
+  try{const list=window.mqBanners||[];if(!state.user||!list.length)return;
+    state.newsPages=state.newsPages||[];let add=false;
+    list.forEach(b=>{const id='bn-'+b.id;if(!b.text||state.newsPages.some(n=>n.id===id))return;
+      state.newsPages.unshift({id,title:(b.emoji||'📣')+' Announcement',body:b.text,type:'announcement',banner:true});add=true});
+    if(add){let k=0;state.newsPages=state.newsPages.filter(n=>!n.banner||++k<=30);save()}}catch(e){}}
+setTimeout(()=>{if(window.mqBannersToNews)mqBannersToNews()},2500);
+const _menu=menu;
+menu=function(){const r=_menu.apply(this,arguments);setTimeout(()=>{drawBanner();paintGlow()},80);return r};
+setInterval(drawBanner,15000);setTimeout(drawBanner,2500);
+
+document.addEventListener('click',e=>{
+  const t=e.target.closest('.location-tool');
+  if(t&&glowing()){e.stopPropagation();e.preventDefault();stopLocationShare();toast("You're off the map. See you in the dark! 🌙");return}
+  const b=e.target.closest('[data-mq9]');if(!b)return;
+  const a=b.dataset.mq9;
+  if(a==='close'){closeModal();return}
+  if(a==='glow-no'){if(state.user){state.user.glowSeen=true;save()}closeModal();return}
+  if(a==='glow-yes'){if(state.user){state.user.glowSeen=true;save()}closeModal();_share();setTimeout(paintGlow,1500);setTimeout(paintGlow,4000);return}
+  if(a==='banner-x'){const el=document.getElementById('mq-banner');if(el){markSeen(el.dataset.id);el.remove()}return}
+},true);
+})();
+
+/* ===== social links, wardrobe, open chat, removed-player screen ===== */
+(function(){
+'use strict';
+const E=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const LINKS=[['📸','Instagram','https://www.instagram.com/zirkus_mond/'],['🌐','Website','https://zirkusmond.de/'],['✈️','Telegram','https://t.me/+bTzQFVB2cHc5b4Zm']];
+window.mqSocialHtml=function(){
+  return `<div class="mq9-social"><h3>Follow Zirkus Mond</h3><div class="mq9-social-row">${LINKS.map(l=>`<a class="button" href="${l[2]}" target="_blank" rel="noopener noreferrer"><span aria-hidden="true">${l[0]}</span> ${l[1]}</a>`).join('')}</div></div>`};
+
+/* ---------- removed from the app ---------- */
+window.mqIsBanned=function(){return window.__mqBanned===true};
+window.mqBanned=function(){
+  window.__mqBanned=true;
+  const a=document.getElementById('app');if(!a||a.querySelector('.mq9-removed'))return;
+  a.innerHTML=`<main class="onboarding mq9-removed"><section class="onboard-panel"><div class="onboard-emblem" aria-hidden="true">☾</div><h1>Your Lunito has landed</h1><p>This account has been removed from MondQuest. If you think this is a mistake, please talk to the Zirkus Mond team.</p>${mqSocialHtml()}</section></main>`};
+setInterval(()=>{if(window.__mqBanned)mqBanned()},1500);
+
+/* ---------- wardrobe ---------- */
+const DEF={hairStyle:'tuft',headgear:'none',suitStyle:'plain'};
+const KEY={hairStyle:'hairStyle',headgear:'headgear',suitStyle:'suitStyle'};
+function ensure(){state.accessories=state.accessories||{owned:[],equipped:[]};state.accessories.owned=state.accessories.owned||[];state.accessories.equipped=state.accessories.equipped||[];state.gadgets=state.gadgets||{owned:[],equipped:[]};state.gadgets.owned=state.gadgets.owned||[];state.gadgets.equipped=state.gadgets.equipped||[]}
+function worn(c){return KEY[c.kind]?state.user[KEY[c.kind]]===c.value:state.accessories.equipped.includes(c.id)}
+function ownedCos(){return CONFIG.cosmetics.filter(c=>{if(KEY[c.kind]&&c.value===DEF[c.kind])return false;return state.accessories.owned.includes(c.id)||(!c.cost&&KEY[c.kind])})}
+function gadgetSvg(g){return `<svg viewBox="0 0 48 48" fill="none" stroke="#1a1250" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${g.icon}</svg>`}
+window.wardrobeScreen=function(){
+  ensure();if(!state.user){go('welcome');return}
+  const cos=ownedCos(),gads=(typeof mqGadgets==='function'?mqGadgets():[]).filter(g=>state.gadgets.owned.includes(g.id));
+  const card=(kind,id,icon,name,on)=>`<button type="button" class="mq9-item ${on?'on':''}" data-mq9="wear" data-kind="${kind}" data-id="${E(id)}" aria-pressed="${on?'true':'false'}"><span class="mq9-ico" aria-hidden="true">${icon}</span><b>${E(name)}</b><small>${on?'Wearing · tap to take off':'In your bag · tap to wear'}</small></button>`;
+  const items=cos.map(c=>card('c',c.id,c.emoji,c.name,worn(c))).concat(gads.map(g=>card('g',g.id,gadgetSvg(g),g.name,state.gadgets.equipped.includes(g.id))));
+  shell(`<section class="card mq9-wardrobe"><button class="button quiet small" data-view="more">← Menu</button><div class="eyebrow">YOUR WARDROBE</div><h1>Wardrobe</h1><div class="mq9-preview">${courierSvg(state.user)}</div><p class="small">Tap anything to put it on or take it off. Nothing is ever lost — it all stays yours.</p><div class="mq9-items">${items.length?items.join(''):'<p class="small">Your bag is empty for now. Spend a few Mondinos in the shop or craft a gadget in Cargo and it will show up here!</p>'}</div><div class="actions"><button type="button" class="button quiet" data-mq9="reset-look">Reset look</button></div></section>`)};
+function wearToggle(kind,id){
+  ensure();
+  if(kind==='c'){const c=CONFIG.cosmetics.find(x=>x.id===id);if(!c)return;
+    if(KEY[c.kind]){const k=KEY[c.kind];state.user[k]=state.user[k]===c.value?DEF[c.kind]:c.value}
+    else{const a=state.accessories.equipped,i=a.indexOf(id);if(i>=0)a.splice(i,1);else a.push(id)}}
+  else{const a=state.gadgets.equipped,i=a.indexOf(id);if(i>=0)a.splice(i,1);else{if(a.length>=3)a.shift();a.push(id)}}
+  save();const v=document.querySelector('.view'),top=v?v.scrollTop:0;wardrobeScreen();const v2=document.querySelector('.view');if(v2)v2.scrollTop=top}
+function resetLook(){ensure();state.accessories.equipped=[];state.gadgets.equipped=[];Object.keys(DEF).forEach(k=>{state.user[k]=DEF[k]});save();wardrobeScreen();toast('Fresh as a new Lunito! Everything is still in your bag.')}
+
+/* ---------- open chat: one shared channel, no private messages, slides out from the map ---------- */
+let msgs=[],muted=[],timer=null,canPost=true,note='',noteAt=0,enabled=true,open=false;
+try{muted=JSON.parse(localStorage.getItem('mq-chat-muted')||'[]')}catch(e){}
+const saveMuted=()=>{try{localStorage.setItem('mq-chat-muted',JSON.stringify(muted))}catch(e){}};
+const hhmm=ms=>{try{return new Date(ms).toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'})}catch(e){return ''}};
+function list(){
+  const l=msgs.filter(m=>m.me||!muted.includes(m.pid));
+  if(!l.length)return '<p class="small mq9-empty">Quiet on the moon right now. Say hi! 👋</p>';
+  return l.map(m=>`<article class="mq9-msg ${m.me?'me':''}"><span class="mq9-av">${courierSvg({...CONFIG.look.defaults,...(m.look||{})})}</span><div><b>${E(m.name)}</b> <small>${hhmm(m.at)}</small><p>${E(m.text)}</p></div>${m.me?'':`<button type="button" class="mq9-mute" data-mq9="mute" data-pid="${E(m.pid)}" aria-label="Hide messages from ${E(m.name)}" title="Hide messages from ${E(m.name)}">🔇</button>`}</article>`).join('')}
+function paint(){
+  const l=document.getElementById('mq9-chatlist');if(!l)return;
+  const near=l.scrollHeight-l.scrollTop-l.clientHeight<70;l.innerHTML=list();if(near)l.scrollTop=l.scrollHeight;
+  const er=document.getElementById('mq9-chaterr');if(er)er.textContent=note;
+  const f=document.getElementById('mq9-form');if(f)f.hidden=!canPost||!enabled;
+  const off=document.getElementById('mq9-off');if(off)off.hidden=enabled;
+  const np=document.getElementById('mq9-nopost');if(np)np.hidden=!(enabled&&!canPost)}
+async function poll(text){
+  if(!window.mqChat)return;
+  try{const r=await mqChat.sync(text);msgs=r.messages||[];canPost=r.canPost!==false;enabled=r.enabled!==false;if(Date.now()-noteAt>5000)note='';
+    if(!enabled){window.mqChatEnabled=false;closePanel();paintChatBtn();return}}catch(e){note=e.message||'Chat is taking a nap.';noteAt=Date.now()}
+  paint()}
+function panelHtml(){
+  return `<div class="mq9-panel-head"><b>💬 Moon chat</b><button type="button" data-mq9="chat-x" aria-label="Close chat">×</button></div><p class="mq9-rules">One open channel for all Lunitos. No private messages. Be kind and don't share personal details.</p><p id="mq9-off" class="mq9-off" hidden>Moon chat is resting right now. 🌙</p><div id="mq9-chatlist" class="mq9-chatlist" aria-live="polite">${list()}</div><p id="mq9-chaterr" class="small mq9-err"></p><p id="mq9-nopost" class="small" hidden>You can read the chat, but posting is switched off for you right now.</p><form id="mq9-form" class="mq9-form" autocomplete="off"><input name="t" maxlength="140" placeholder="Say something nice…" aria-label="Your message"><button class="button primary" type="submit">Send</button></form>`}
+function openPanel(){
+  const w=document.querySelector('.map-world');if(!w||!window.mqChatEnabled||!window.mqChat)return;
+  closePanel();open=true;
+  const p=document.createElement('section');p.id='mq9-panel';p.className='mq9-panel';p.setAttribute('aria-label','Moon chat');p.innerHTML=panelHtml();w.appendChild(p);
+  const b=document.getElementById('mq9-chatbtn');if(b)b.setAttribute('aria-expanded','true');
+  poll();clearInterval(timer);timer=setInterval(()=>{if(!open||!document.getElementById('mq9-panel')){clearInterval(timer);return}if(!document.hidden)poll()},6000);
+  setTimeout(()=>{const l=document.getElementById('mq9-chatlist');if(l)l.scrollTop=l.scrollHeight},80)}
+function closePanel(){open=false;clearInterval(timer);const p=document.getElementById('mq9-panel');if(p)p.remove();const b=document.getElementById('mq9-chatbtn');if(b)b.setAttribute('aria-expanded','false')}
+function paintChatBtn(){
+  const w=document.querySelector('.map-world');let b=document.getElementById('mq9-chatbtn');
+  const on=!!w&&window.mqChatEnabled===true&&!!window.mqChat&&!!state.user;
+  if(!on){if(b)b.remove();if(!w)closePanel();else if(document.getElementById('mq9-panel')&&!window.mqChatEnabled)closePanel();return}
+  if(b&&w.contains(b))return;
+  b=document.createElement('button');b.id='mq9-chatbtn';b.type='button';b.className='world-shortcut chat-shortcut';b.dataset.mq9='chat-toggle';
+  b.setAttribute('aria-label','Moon chat');b.setAttribute('aria-expanded',open?'true':'false');b.title='Moon chat';
+  b.innerHTML='<svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a8 8 0 0 1-11.6 7.1L4 20.5l1.4-4.3A8 8 0 1 1 21 12z"/><circle cx="9" cy="12" r=".6" fill="currentColor"/><circle cx="13" cy="12" r=".6" fill="currentColor"/><circle cx="17" cy="12" r=".6" fill="currentColor"/></svg>';
+  w.appendChild(b)}
+window.mqPaintChat=paintChatBtn;
+window.chatScreen=function(){go('menu');setTimeout(()=>{paintChatBtn();openPanel()},350)};
+const _menu2=menu;menu=function(){const r=_menu2.apply(this,arguments);open=false;setTimeout(paintChatBtn,100);return r};
+setInterval(paintChatBtn,3000);setTimeout(paintChatBtn,2500);
+setInterval(()=>{if(!document.hidden&&window.mqSheet&&mqSheet.loadConfig)mqSheet.loadConfig().then(()=>{paintChatBtn();if(window.mqDrawBanner)mqDrawBanner()})},45000);
+document.addEventListener('submit',e=>{
+  const f=e.target.closest('#mq9-form');if(!f)return;e.preventDefault();
+  const i=f.elements.t,t=i.value.trim();if(!t)return;
+  i.value='';poll(t)});
+
+/* ---------- social links at the end of Cargo, Profile and News ---------- */
+const SOCIAL_VIEWS=['shop','courier','announcements'];
+const _shell=shell;
+shell=function(){const r=_shell.apply(this,arguments);
+  try{if(SOCIAL_VIEWS.includes(currentView)){const cards=document.querySelectorAll('.view section.card, .view > section');const last=cards[cards.length-1]||document.querySelector('.view');
+    if(last&&!last.querySelector('.mq9-social')){last.insertAdjacentHTML('beforeend',mqSocialHtml())}}
+    if(currentView==='settings'){const c=document.querySelector('.view section.card, .view > section');if(c&&!c.querySelector('.mq9-build'))c.insertAdjacentHTML('beforeend','<p class="small mq9-build">MondQuest build 7 · 18 Nov 2026</p>')}}catch(e){}
+  return r};
+
+document.addEventListener('click',e=>{
+  const b=e.target.closest('[data-mq9]');if(!b)return;const a=b.dataset.mq9;
+  if(a==='wear'){wearToggle(b.dataset.kind,b.dataset.id);return}
+  if(a==='reset-look'){
+    const o=document.createElement('div');o.className='mq9-modal';o.id='mq9-modal';o.setAttribute('role','dialog');o.setAttribute('aria-modal','true');
+    o.innerHTML=`<div class="mq9-box"><div class="mq9-emoji" aria-hidden="true">🪄</div><h2>Reset your look?</h2><p>Everything comes off, like when you first landed. Nothing is lost — it all stays in your bag and you can wear it again anytime.</p><div class="mq9-row"><button type="button" class="button primary" data-mq9="reset-yes">Yes, reset</button><button type="button" class="button quiet" data-mq9="close">Keep my look</button></div></div>`;
+    document.body.appendChild(o);return}
+  if(a==='reset-yes'){const m=document.getElementById('mq9-modal');if(m)m.remove();resetLook();return}
+  if(a==='chat-toggle'){if(document.getElementById('mq9-panel'))closePanel();else openPanel();return}
+  if(a==='chat-x'){closePanel();return}
+  if(a==='mute'){const pid=b.dataset.pid;if(pid&&!muted.includes(pid)){muted.push(pid);saveMuted();paint();toast('Hidden for you. 🔇')}return}
+});
+})();

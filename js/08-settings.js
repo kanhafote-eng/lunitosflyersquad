@@ -57,12 +57,12 @@
       <h2>Map</h2>
       ${sw('places','Distribution places','Show place pins on the map')}
       ${sw('sightings','Sticker sightings','Show reported stickers on the map')}
-      <h2>Location</h2>
+      ${mqAgeU16()?'':`<h2>Location</h2>
       <p class="small">Sharing is always optional. While you share, other players can see your approximate position (about 100 m) on the map for up to 30 minutes. Tap “Stop sharing” to disappear at once.</p>
       <div class="actions"><button type="button" class="button quiet" data-action="location-on">Share my location now</button><button type="button" class="button quiet" data-action="location-off">Stop sharing</button></div>
       <div id="online-list" class="online-list">Checking who is online…</div>
       <div class="actions"><button type="button" class="button quiet" data-view="players">See players online</button></div>
-      <h2>Help</h2>
+      `}<h2>Help</h2>
       <div class="actions"><button type="button" class="button quiet" data-mq-act="replay">Replay the how-to-play guide</button></div>
       <h2>This device</h2>
       <p class="small">Signs you out here and clears what is saved in this browser. Anything already synced to Zirkus Mond stays safe.</p>
@@ -137,16 +137,17 @@
   window.playersScreen=function(){
     const P=window.mqPresence;
     let sharing,online;
-    if(P){sharing=P.sharing().filter(x=>!x.me);online=P.online().filter(x=>!x.me&&!x.sharing)}
+    if(P){sharing=P.sharing().filter(x=>!x.me);online=P.online().filter(x=>!x.me&&(mqAgeU16()||!x.sharing))}
     else{sharing=livePresence().filter(x=>String(x.code)!==String(state.user?.code)).map(x=>({name:x.name,lat:x.lat,lng:x.lng,updatedAt:x.updatedAt}));online=[]}
     const mine=livePresence().some(x=>!x.remote&&String(x.code)===String(state.user?.code));
     shell(`<section class="card"><div class="eyebrow">COMMUNITY · LIVE</div><h1>Players online</h1>
       <p class="small">Players seen in the last 5 minutes. Those who share their location appear on the map for up to 30 minutes.</p>
-      <p><b>You are ${mine?'sharing your location':'not sharing your location'}.</b></p>
-      <div class="actions"><button type="button" class="button quiet" data-action="location-on">Share my location</button><button type="button" class="button quiet" data-action="location-off">Stop sharing</button><button type="button" class="button quiet" data-mq-act="players-refresh">Refresh</button></div>
-      <h2>Sharing location (${sharing.length})</h2>
-      ${sharing.length?sharing.map(x=>`<div class="set-row"><div><b>${esc(x.name)}</b><small>Updated ${ago(x.updatedAt)} · approximate position</small></div><button type="button" class="button small" data-mq-focus="${x.lat},${x.lng}">Show on map</button></div>`).join(''):'<p class="small">Nobody is sharing their location right now.</p>'}
-      <h2>Online, not sharing (${online.length})</h2>
+      ${mqAgeU16()?'':`<p><b>You are ${mine?'sharing your location':'not sharing your location'}.</b></p>
+      <div class="actions"><button type="button" class="button quiet" data-action="location-on">Share my location</button><button type="button" class="button quiet" data-action="location-off">Stop sharing</button></div>`}
+      <div class="actions"><button type="button" class="button quiet" data-mq-act="players-refresh">Refresh</button></div>
+      ${mqAgeU16()?'':`<h2>Sharing location (${sharing.length})</h2>`}
+      ${mqAgeU16()?'':sharing.length?sharing.map(x=>`<div class="set-row"><div><b>${esc(x.name)}</b><small>Updated ${ago(x.updatedAt)} · approximate position</small></div><button type="button" class="button small" data-mq-focus="${x.lat},${x.lng}">Show on map</button></div>`).join(''):'<p class="small">Nobody is sharing their location right now.</p>'}
+      <h2>${mqAgeU16()?'Online now':'Online, not sharing'} (${online.length})</h2>
       ${online.length?online.map(x=>`<div class="set-row"><div><b>${esc(x.name)}</b><small>Online now</small></div></div>`).join(''):'<p class="small">No other players online.</p>'}
     </section>`);
     if(window.mqSheet&&Date.now()-lastFetch>8000){lastFetch=Date.now();window.mqSheet.presence()}
