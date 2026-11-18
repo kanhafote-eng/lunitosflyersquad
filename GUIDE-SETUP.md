@@ -56,4 +56,4 @@ Upload everything from the zip, but never overwrite your own `config.js`.
 - **Follow us.** Instagram (zirkus_mond), the website zirkusmond.de and the Telegram group appear at the bottom of the Cargo, Profile and News pages.
 - **Chat button.** When the chat is on, a chat button appears under the world button on the map; it opens the chat to the left.
 - **Announcements.** They show on the map screen, can be closed with ×, and then stay in News (the bell shows a number for new ones).
-- **Check you have the latest files.** Settings shows "MondQuest build 7" at the bottom. If you do not see it, the old files are still being served: make sure `index.html` and the whole `js` folder (including `js/09-lunitos.js`) were uploaded, then reload the page twice.
+- **Check you have the latest files.** Settings shows "MondQuest build 8" at the bottom. If you do not see it, the old files are still being served: make sure `index.html` and the whole `js` folder (including `js/09-lunitos.js`) were uploaded, then reload the page twice.

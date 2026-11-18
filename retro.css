@@ -257,8 +257,6 @@ html[data-theme] .map-world .map-bottom .location-tool.glow,.map-world .map-bott
 .mq-banner p{margin:0;flex:1;font-size:.92rem;line-height:1.25}
 .mq-banner-e{font-size:1.5rem}
 .mq-banner button{border:2px solid #1a1250;background:#fff;color:#1a1250;border-radius:999px;width:34px;height:34px;font-size:1.1rem;font-weight:900}
-.mq9-social{margin:14px 0 4px;text-align:center}.mq9-social h3{margin:0 0 8px;font-size:.95rem}
-.mq9-social-row{display:flex;flex-wrap:wrap;gap:8px;justify-content:center}.mq9-social-row .button{text-decoration:none;min-height:44px;display:inline-flex;align-items:center;gap:6px}
 .mq9-preview{max-width:170px;margin:6px auto}
 .mq9-items{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin:12px 0}
 .mq9-item{display:flex;flex-direction:column;align-items:center;gap:4px;padding:10px 6px;border-radius:8px 16px 8px 16px;border:3px solid #9a6bff;background:rgba(255,255,255,.06);color:inherit;text-align:center;min-height:110px}
@@ -282,3 +280,8 @@ html[data-theme=day] .mq9-panel{background:#fff;color:#1a1250;border-color:#1a12
 .mq9-panel-head button{border:2px solid currentColor;background:transparent;color:inherit;border-radius:999px;width:34px;height:34px;font-size:1.1rem;font-weight:900}
 .mq9-rules{margin:4px 0 6px;font-size:.74rem;opacity:.8}
 .mq9-panel .mq9-chatlist{flex:1;min-height:90px;max-height:none}
+
+.mq9-social{display:flex;justify-content:center;gap:6px;margin:16px 0 2px;opacity:.6}
+.mq9-social a{display:inline-flex;align-items:center;justify-content:center;width:34px;height:34px;border-radius:50%;color:inherit;text-decoration:none}
+.mq9-social a svg{width:18px;height:18px}
+.mq9-social a:hover,.mq9-social a:focus-visible{opacity:1;background:rgba(127,127,127,.18)}
