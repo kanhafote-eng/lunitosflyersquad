@@ -74,9 +74,13 @@ document.addEventListener('click',e=>{
 (function(){
 'use strict';
 const E=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const LINKS=[['📸','Instagram','https://www.instagram.com/zirkus_mond/'],['🌐','Website','https://zirkusmond.de/'],['✈️','Telegram','https://t.me/+bTzQFVB2cHc5b4Zm']];
+const ICONS={
+ ig:'<svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="3.5" width="17" height="17" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.2" cy="6.8" r=".8" fill="currentColor"/></svg>',
+ web:'<svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.5"/><path d="M3.5 12h17M12 3.5c2.4 2.4 3.6 5.2 3.6 8.5s-1.2 6.1-3.6 8.5c-2.4-2.4-3.6-5.2-3.6-8.5S9.600 5.900 12 3.500z"/></svg>',
+ tg:'<svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M21 4 3.5 11l5.5 2 2 6 3-4 4.500 3.300z"/><path d="m9 13 7.500-5.500"/></svg>'};
+const LINKS=[['ig','Instagram','https://www.instagram.com/zirkus_mond/'],['web','Website zirkusmond.de','https://zirkusmond.de/'],['tg','Telegram group','https://t.me/+bTzQFVB2cHc5b4Zm']];
 window.mqSocialHtml=function(){
-  return `<div class="mq9-social"><h3>Follow Zirkus Mond</h3><div class="mq9-social-row">${LINKS.map(l=>`<a class="button" href="${l[2]}" target="_blank" rel="noopener noreferrer"><span aria-hidden="true">${l[0]}</span> ${l[1]}</a>`).join('')}</div></div>`};
+  return `<nav class="mq9-social" aria-label="Zirkus Mond on the web">${LINKS.map(l=>`<a href="${l[2]}" target="_blank" rel="noopener noreferrer" aria-label="${l[1]}">${ICONS[l[0]]}</a>`).join('')}</nav>`};
 
 /* ---------- removed from the app ---------- */
 window.mqIsBanned=function(){return window.__mqBanned===true};
@@ -164,7 +168,7 @@ const _shell=shell;
 shell=function(){const r=_shell.apply(this,arguments);
   try{if(SOCIAL_VIEWS.includes(currentView)){const cards=document.querySelectorAll('.view section.card, .view > section');const last=cards[cards.length-1]||document.querySelector('.view');
     if(last&&!last.querySelector('.mq9-social')){last.insertAdjacentHTML('beforeend',mqSocialHtml())}}
-    if(currentView==='settings'){const c=document.querySelector('.view section.card, .view > section');if(c&&!c.querySelector('.mq9-build'))c.insertAdjacentHTML('beforeend','<p class="small mq9-build">MondQuest build 7 · 18 Nov 2026</p>')}}catch(e){}
+    if(currentView==='settings'){const c=document.querySelector('.view section.card, .view > section');if(c&&!c.querySelector('.mq9-build'))c.insertAdjacentHTML('beforeend','<p class="small mq9-build">MondQuest build 9 · 19 Nov 2026</p>')}}catch(e){}
   return r};
 
 document.addEventListener('click',e=>{
@@ -179,4 +183,85 @@ document.addEventListener('click',e=>{
   if(a==='chat-x'){closePanel();return}
   if(a==='mute'){const pid=b.dataset.pid;if(pid&&!muted.includes(pid)){muted.push(pid);saveMuted();paint();toast('Hidden for you. 🔇')}return}
 });
+})();
+
+
+/* ===== recover a Lunito with its code or QR, and map zoom buttons ===== */
+(function(){
+'use strict';
+const E=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+/* link on the welcome screen */
+const _welcome=welcome;
+welcome=function(){const r=_welcome.apply(this,arguments);
+  try{const foot=document.querySelector('.onboard-panel .onboard-foot');
+    if(foot&&!document.querySelector('[data-mq9=recover]'))foot.insertAdjacentHTML('beforebegin','<button type="button" class="button quiet onboard-next" data-mq9="recover">I already have a Lunito</button>')}catch(e){}
+  return r};
+
+function recoverScreen(msg){
+  app.innerHTML=`<main class="onboarding"><section class="onboard-panel"><div class="onboard-emblem" aria-hidden="true">☾</div><p class="onboard-step">WELCOME BACK</p><h1>Bring your Lunito back</h1><p>Type the code from your Profile (it looks like MQ-ABC123), or scan your QR from another phone.</p><label class="onboard-field">Your Lunito code<input id="mq9-rec" maxlength="24" placeholder="MQ-ABC123" autocomplete="off" autocapitalize="characters" spellcheck="false"></label><p id="mq9-recmsg" class="mq9-err" role="status">${E(msg||'')}</p><button type="button" class="button primary onboard-next" data-mq9="rec-go">Recover my Lunito</button><button type="button" class="button onboard-next" data-mq9="rec-scan">📷 Scan my QR</button><button type="button" class="button quiet onboard-next" data-mq9="rec-back">← Back</button><p class="onboard-foot">Keep your code and QR private: anyone who has them can open your Lunito.</p></section></main>`;
+  const i=document.getElementById('mq9-rec');if(i)i.addEventListener('keydown',e=>{if(e.key==='Enter')doRecover(i.value)})}
+function say(t){const m=document.getElementById('mq9-recmsg');if(m)m.textContent=t}
+let busy=false;
+async function doRecover(raw){
+  const code=String(raw||'').trim().toUpperCase().replace(/^MQ:/,'');
+  if(!/^[A-Z0-9\-]{3,24}$/.test(code)){say('Type the code exactly as it appears in your Profile.');return}
+  if(!window.mqRecover){say('Recovery needs the app to be connected to the circus. Try again when you are online.');return}
+  if(busy)return;busy=true;say('Looking for your Lunito…');
+  try{const r=await mqRecover(code);apply(r);}catch(e){say(e.message||'Something went wrong. Try again.')}finally{busy=false}}
+function apply(r){
+  const P=r.player,X=r.extras||{},L=X.look||{};
+  Object.assign(state,fresh());
+  state.user={id:P.code,name:P.name,code:P.code,avatar:AVATARS[0],...CONFIG.look.defaults,...L,createdAt:X.at||Date.now(),age:''};
+  state.wallet=Number(P.wallet)||0;state.earned=Number(P.earned)||0;
+  state.inventory={...state.inventory,flyers:P.flyers,posters:P.posters,stickers:P.stickers};
+  state.accessories={owned:(X.acc&&X.acc.o)||[],equipped:(X.acc&&X.acc.e)||[]};
+  state.gadgets={owned:(X.gad&&X.gad.o)||[],equipped:(X.gad&&X.gad.e)||[]};
+  if(X.min)state.minerals={...{meteor:0,comet:0,nebula:0,void:0,rings:0},...X.min};
+  if(X.ch!=null)state.chests=X.ch;
+  state.guideDone=true;state.playerCodes=[P.code];
+  state.__sync={lastAt:Date.now(),reqs:[],places:[],applied:[],ack:[],pk:[]};
+  save();go('menu');toast('Welcome back, '+P.name+'! 🌙')}
+async function loadScan(){
+  const add=src=>new Promise((ok,no)=>{const x=document.createElement('script');x.src=src;x.onload=ok;x.onerror=()=>no(new Error('scanner'));document.head.appendChild(x)});
+  if(!window.jsQR)await add('vendor/qr/jsQR.js?v=9');
+  if(!window.QrScan)await add('js/qrscan.js?v=9')}
+
+document.addEventListener('click',async e=>{
+  const b=e.target.closest('[data-mq9]');if(!b)return;const a=b.dataset.mq9;
+  if(a==='recover'){recoverScreen();return}
+  if(a==='rec-back'){go('welcome');return}
+  if(a==='rec-go'){doRecover(document.getElementById('mq9-rec').value);return}
+  if(a==='rec-scan'){
+    try{say('Opening the camera…');await loadScan();say('');
+      QrScan.open(code=>{const i=document.getElementById('mq9-rec');if(i)i.value=code;doRecover(code)},{title:'Scan your Lunito QR',hint:'Point the camera at the QR code in your Profile on your other phone.'})}
+    catch(err){say('The scanner could not start. You can type your code instead.')}return}
+  if(a==='zoom-in'||a==='zoom-out'){
+    if(typeof leafletInstance!=='undefined'&&leafletInstance&&leafletInstance.zoomIn){a==='zoom-in'?leafletInstance.zoomIn():leafletInstance.zoomOut()}
+    else toast('The map is offline right now.');return}
+});
+
+/* note under the profile QR (before the social icons) */
+const _shell2=shell;
+shell=function(){const r=_shell2.apply(this,arguments);
+  try{if(currentView==='courier'){const cards=document.querySelectorAll('.view section.card, .view > section');const last=cards[cards.length-1];
+    if(last&&!last.querySelector('.mq9-keep')){const n=document.createElement('p');n.className='small mq9-keep';n.textContent='💡 Save a screenshot of your QR or write down your code. With it you can bring your Lunito back on any phone.';const soc=last.querySelector('.mq9-social');soc?last.insertBefore(n,soc):last.appendChild(n)}}}catch(e){}
+  return r};
+
+/* zoom + / − above the Center button */
+function placeZoom(){
+  const w=document.querySelector('.map-world'),z=document.getElementById('mq9-zoom'),c=document.querySelector('.map-world .center-tool');
+  if(!w||!z||!c)return;
+  const wr=w.getBoundingClientRect(),cr=c.getBoundingClientRect();
+  z.style.width=cr.width+'px';z.style.left=(cr.left-wr.left)+'px';z.style.bottom=(wr.bottom-cr.top+10)+'px'}
+function paintZoom(){
+  const w=document.querySelector('.map-world');if(!w)return;
+  if(!document.getElementById('mq9-zoom')){
+    const z=document.createElement('div');z.id='mq9-zoom';z.className='mq9-zoom';
+    z.innerHTML='<button type="button" data-mq9="zoom-in" aria-label="Zoom in"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></button><button type="button" data-mq9="zoom-out" aria-label="Zoom out"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14"/></svg></button>';
+    w.appendChild(z)}
+  placeZoom()}
+const _menu3=menu;menu=function(){const r=_menu3.apply(this,arguments);setTimeout(paintZoom,120);setTimeout(placeZoom,600);return r};
+window.addEventListener('resize',()=>setTimeout(placeZoom,100));window.addEventListener('orientationchange',()=>setTimeout(placeZoom,300));
+setInterval(paintZoom,3000);setTimeout(paintZoom,2500);
 })();

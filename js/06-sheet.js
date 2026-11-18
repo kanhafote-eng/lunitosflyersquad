@@ -42,7 +42,9 @@ function save0(){try{localStorage.setItem(CONFIG.storageKey,JSON.stringify(state
 function refreshView(){try{if(state.user&&!state.user.age&&window.mqAgeScreen){if(document.querySelector('.age-btns[data-legacy]'))return}if(currentView==='chat'||currentView==='wardrobe')return;if(typeof currentView==='string'&&!document.querySelector('input:focus,textarea:focus,select:focus'))go(currentView)}catch(e){}}
 
 function snapshot(){const u=state.user;if(!u)return null;const inv=state.inventory||{};
-  return{code:u.code,name:u.name,wallet:state.wallet,earned:state.earned,flyers:inv.flyers||0,posters:inv.posters||0,stickers:inv.stickers||0,age:u.age||''}}
+  return{code:u.code,name:u.name,wallet:state.wallet,earned:state.earned,flyers:inv.flyers||0,posters:inv.posters||0,stickers:inv.stickers||0,age:u.age||'',extras:mqExtras()}}
+function mqExtras(){try{const u=state.user,look={};Object.keys(CONFIG.look.defaults||{}).forEach(k=>{look[k]=u[k]});const A=state.accessories||{},G=state.gadgets||{};return{look,acc:{o:A.owned||[],e:A.equipped||[]},gad:{o:G.owned||[],e:G.equipped||[]},min:state.minerals||{},ch:state.chests||0,at:u.createdAt||0}}catch(e){return null}}
+window.mqRecover=async code=>{const r=await post({action:'recoverPlayer',code});if(!r||!r.ok)throw new Error((r&&r.error)||'Could not reach the circus. Check your connection and try again.');return r};
 let busy=false;
 async function sync(){
   if(busy||!state.user||!navigator.onLine)return;busy=true;const sy=S();

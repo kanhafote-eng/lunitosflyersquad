@@ -75,7 +75,7 @@ var ACTION_ROLE = { sync:'player', pull:'player',
   presenceSync:'player', staffPickups:'staff', staffPickupHandle:'staff', adminImportPlaces:'admin',
   photoUpload:'player', staffSetAge:'staff', adminPhotos:'admin', adminPhotoPick:'admin',
   adminBanner:'admin', adminBannerStop:'admin', adminBanners:'admin',
-  chatSync:'player', adminChat:'admin', adminChatSetting:'admin', adminChatHide:'admin', adminSetAccess:'admin' };
+  chatSync:'player', recoverPlayer:'player', adminChat:'admin', adminChatSetting:'admin', adminChatHide:'admin', adminSetAccess:'admin' };
 
 function auth_(req, a){
   var need = ACTION_ROLE[a]; if(!need) throw new Error('unknown action');
@@ -124,12 +124,12 @@ function ensureCol_(tab, head, fill){
     for(var i=1;i<v.length;i++){ var o={}; for(var j=0;j<h.length;j++) o[h[j]]=v[i][j]; var x=fill(o); if(x!=='' && x!=null) s.getRange(i+1,lc+1).setValue(x); } }
 }
 function schema_(){
-  var cache = CacheService.getScriptCache(); if(cache.get('schema3')) return;
+  var cache = CacheService.getScriptCache(); if(cache.get('schema4')) return;
   ensureCol_('Players','Age');
   ensure_('Banners'); ensure_('Photos'); ensure_('Chat');
-  ensureCol_('Players','Access');
+  ensureCol_('Players','Access'); ensureCol_('Players','Extras');
   if(!findRow_('Config','Key','chat.enabled')) appendObj_('Config',{Key:'chat.enabled',Value:'FALSE','What it does':'Moon chat on (TRUE) or off (FALSE). Easier to change in Admin > Chat.'});
-  cache.put('schema3','1',21600);
+  cache.put('schema4','1',21600);
 }
 // Creates Pickups / Presence on first use, so older sheets keep working without manual steps.
 function ensure_(name){
@@ -142,6 +142,13 @@ function lookJson_(l){ var o = {}; try{ if(typeof l==='string') l = JSON.parse(l
   if(l && typeof l==='object'){ var n = 0; for(var k in l){ if(n>=14) break; var v = l[k];
     if(/^[A-Za-z]{1,20}$/.test(k) && (typeof v==='number' || (typeof v==='string' && /^[#\w. -]{1,24}$/.test(v)))){ o[k]=v; n++; } } }
   return JSON.stringify(o); }
+function idList_(a){ var o = []; if(a && a.length) for(var i=0;i<a.length && o.length<80;i++){ if(/^[\w-]{1,40}$/.test(String(a[i]))) o.push(String(a[i])); } return o; }
+function extrasJson_(x){
+  if(!x || typeof x!=='object') return '';
+  var o = {look: JSON.parse(lookJson_(x.look)), acc:{o:idList_((x.acc||{}).o), e:idList_((x.acc||{}).e)}, gad:{o:idList_((x.gad||{}).o), e:idList_((x.gad||{}).e)}, min:{}, ch:Math.max(0,Math.min(999,Number(x.ch)||0)), at:Number(x.at)||0};
+  ['meteor','comet','nebula','void','rings'].forEach(function(k){ o.min[k] = Math.max(0, Math.min(99999, Number((x.min||{})[k])||0)); });
+  var s = JSON.stringify(o); return s.length<=4000 ? s : '';
+}
 function pid_(code){ var h = 5381, s = 'mq:' + String(code); for(var i=0;i<s.length;i++){ h = ((h<<5)+h + s.charCodeAt(i)) | 0; } return 'p' + (h>>>0).toString(36); }
 function pickupPoints_(){ var r = findRow_('Config','Key','points.pickup'); var v = r ? Number(r.Value) : 5; return isFinite(v) ? v : 5; }
 function qty_(v, max){ v = Math.floor(Number(v)||0); return Math.max(0, Math.min(max, v)); }
@@ -153,7 +160,8 @@ function upsertPlayer_(p){
     Flyers:Number(p.flyers)||0, Posters:Number(p.posters)||0, Stickers:Number(p.stickers)||0};
   // The age group is stored once; after that only staff/admin can change it.
   var age = (p.age==='u16' || p.age==='16+') ? p.age : '';
-  if(r){ if(age && !r.Age) vals.Age = age; setCells_('Players', r._row, vals); return r.Trust||'new'; }
+  if(r){ if(age && !r.Age) vals.Age = age; var ex0 = extrasJson_(p.extras); if(ex0) vals.Extras = ex0; setCells_('Players', r._row, vals); return r.Trust||'new'; }
+  var ex = extrasJson_(p.extras); if(ex) vals.Extras = ex;
   vals.Code = p.code; vals.FirstSeen = t; vals.Trust = 'new'; vals.Age = age; appendObj_('Players', vals); return 'new';
 }
 
@@ -293,6 +301,16 @@ var HANDLERS = {
       return o;
     });
     return {ok:true, items:items, total:rows.length, next:(start+12<rows.length)?start+12:null, folder:prop_('PHOTO_FOLDER_ID')?true:false};
+  },
+  recoverPlayer: function(req){
+    var cache = CacheService.getScriptCache(), f = Number(cache.get('recfails')||0);
+    if(f>=30) throw new Error('Too many tries. Please wait a few minutes and try again.');
+    var m = String(req.code||'').trim().toUpperCase().match(/^(?:MQ:)?([A-Z0-9\-]{3,24})$/), code = m ? m[1] : '';
+    var pr = code ? findRow_('Players','Code',code) : null;
+    if(!pr){ cache.put('recfails', String(f+1), 600); throw new Error("We couldn't find that code. Check it and try again."); }
+    if(String(pr.Access)==='banned') return {ok:false, banned:true, error:'This Lunito has been removed from MondQuest.'};
+    var ex = {}; try{ ex = JSON.parse(pr.Extras||'{}'); }catch(e){}
+    return {ok:true, player:{code:pr.Code, name:pr.Name, wallet:Number(pr.Wallet)||0, earned:Number(pr.Earned)||0, flyers:Number(pr.Flyers)||0, posters:Number(pr.Posters)||0, stickers:Number(pr.Stickers)||0}, extras:ex};
   },
   chatSync: function(req){
     var p = req.player||{}; if(!validCode_(p.code)) throw new Error('bad player code');
