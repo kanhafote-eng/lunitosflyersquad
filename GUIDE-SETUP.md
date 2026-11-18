@@ -35,3 +35,22 @@ Upload everything from the zip, but never overwrite your own `config.js`.
 - **Players online.** The game shows who has been active in the last 5 minutes. Players who choose to share their location appear on the map for 30 minutes, rounded to about 100 m. They can stop at any time.
 - **Import places from CSV.** Admin > Places > Import places from a CSV file. Columns: `name` (required), `type`, `address`, `lat`, `lng`, `posterSize`, `spot`, `notes`. Rows without coordinates are located from their address (OpenStreetMap, about one per second). Places already in the list are skipped. Download the template in that card.
 - **PINs** live only in Apps Script properties, never in the repository.
+
+## 6. New: nickname, location glow, sticker photos and announcements
+**Update (no data is lost):** paste the new `sheets/Code.gs` over the old one, then **Deploy > Manage deployments > pencil > Version: New version > Deploy**. The web app URL stays the same. The script adds the new tabs (Photos, Banners, Chat) and the Players > Access column to your sheet by itself. Then upload the rest of the zip to GitHub (keep your own `config.js`).
+
+**Photo folder (needed for sticker photos):**
+1. In Google Drive create a folder, for example *MondQuest sticker photos*.
+2. Open it and copy the long ID at the end of the address (`drive.google.com/drive/folders/THIS-PART`).
+3. In Apps Script open **Project Settings > Script properties > Add script property**: name `PHOTO_FOLDER_ID`, value the ID. Save.
+4. The first time a photo arrives Google asks you to **authorize Drive access**: *Review permissions > Allow*. If photos do not arrive, redeploy as a new version after authorizing.
+
+**How the new things behave**
+- **Nickname.** The start screen asks players to pick a nickname instead of their real name.
+- **Location.** The first time a player taps Location, a friendly notice explains that others see roughly where they are (about 100 m) for 30 minutes. After that the Location button simply glows yellow while they are sharing; tapping it again switches sharing off.
+- **Sticker photos.** Resized on the phone (longest side about 1080 px, small JPEG, usually 100–250 KB), uploaded to your Drive folder and logged in the **Photos** tab. Players tick a friendly "Sounds good!" box that says we might share the photo on social media and to keep faces out of the shot. Admin > **Photos** shows the latest photos; tap ⭐ to mark the ones you want to use and "Open" to see the full photo in Drive.
+- **Announcements.** Admin > **Announcements**: write a message (for example "Remember: tonight we have an incredible show!"), choose how long it shows (1 hour up to 1 week) and press Send. It appears on every player's main screen within about a minute and disappears by itself when the time is up. Players can close it, and you can stop it early from the same page.
+- **Moon chat.** One open channel for everybody (no private messages), short text only (140 characters, no links or @handles, one message every 5 seconds). It starts **switched off**: turn it on in Admin > **Chat** (for example during shows) and off again whenever you like; changes reach phones within about a minute. You see the latest messages there and can hide any message for everyone.
+- **Muting and removing players.** In Admin > Players (or next to a message in Admin > Chat) the **Access** menu has three settings: *Active*, *Muted in chat* (can read, cannot write) and *Removed from app* (locked out of everything, their chat messages are hidden). You can undo either at any time by choosing *Active* again.
+- **Wardrobe.** Players can take clothes, accessories and gadgets off and on, and press *Reset look*. Nothing is ever lost.
+- **Follow us.** The Menu and Settings screens show buttons for Instagram (zirkus_mond), the website zirkusmond.de and the Telegram group.

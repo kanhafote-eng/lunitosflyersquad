@@ -238,3 +238,36 @@ html[data-theme] .lunar-sheet .button .mq-i,html[data-theme] .more-grid .button 
 .qr-card{text-align:center}
 .qr-box{background:#fff;padding:8px;border-radius:14px;border:3px solid var(--rf-ol);width:min(68vw,250px);margin:10px auto}
 .qr-box svg{width:100%;height:auto;display:block}
+
+/* ===== additions: notices, glowing location button, announcements ===== */
+.onboard-hint{font-size:.82rem;opacity:.8;margin:-4px 0 10px}
+.mq9-modal{position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;padding:18px;background:rgba(10,6,40,.62)}
+.mq9-box{max-width:360px;width:100%;background:#241a6e;color:#fff;border:3px solid #9a6bff;border-radius:8px 22px 8px 22px;padding:20px;text-align:center;box-shadow:4px 6px 0 #150f4f}
+html[data-theme=day] .mq9-box{background:#fff;color:#1a1250;border-color:#1a1250}
+.mq9-box h2{margin:.2em 0 .4em}.mq9-emoji{font-size:2.2rem}
+.mq9-row{display:flex;flex-direction:column;gap:8px;margin-top:14px}
+html[data-theme] .map-world .map-bottom .location-tool.glow,.map-world .map-bottom .location-tool.glow{background:#ffd21f!important;color:#1a1250!important;border-color:#fff!important;animation:mqGlow 1.8s ease-in-out infinite}
+.map-world .map-bottom .location-tool.glow *{color:#1a1250!important;stroke:#1a1250}
+@keyframes mqGlow{0%,100%{box-shadow:0 0 8px 2px rgba(255,210,31,.55)}50%{box-shadow:0 0 22px 8px rgba(255,210,31,.95)}}
+@media(prefers-reduced-motion:reduce){.map-world .map-bottom .location-tool.glow{animation:none;box-shadow:0 0 16px 6px rgba(255,210,31,.9)}}
+.mq9-consent{margin:10px 0;padding:10px 12px;border-radius:12px;background:rgba(255,210,31,.14);border:2px dashed #ffd21f}
+.mq9-consent p{margin:0 0 6px}.mq9-check{display:flex;gap:8px;align-items:center;font-weight:800}
+.mq9-check input{width:22px;height:22px}
+.mq-banner{position:absolute;left:12px;right:68px;top:calc(76px + env(safe-area-inset-top,0px));z-index:30;display:flex;align-items:center;gap:10px;padding:10px 8px 10px 12px;border-radius:8px 18px 8px 18px;background:#ffd21f;color:#1a1250;border:3px solid #1a1250;box-shadow:3px 4px 0 #1a1250;font-weight:800}
+.mq-banner p{margin:0;flex:1;font-size:.92rem;line-height:1.25}
+.mq-banner-e{font-size:1.5rem}
+.mq-banner button{border:2px solid #1a1250;background:#fff;color:#1a1250;border-radius:999px;width:34px;height:34px;font-size:1.1rem;font-weight:900}
+.mq9-social{margin:14px 0 4px;text-align:center}.mq9-social h3{margin:0 0 8px;font-size:.95rem}
+.mq9-social-row{display:flex;flex-wrap:wrap;gap:8px;justify-content:center}.mq9-social-row .button{text-decoration:none;min-height:44px;display:inline-flex;align-items:center;gap:6px}
+.mq9-preview{max-width:170px;margin:6px auto}
+.mq9-items{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin:12px 0}
+.mq9-item{display:flex;flex-direction:column;align-items:center;gap:4px;padding:10px 6px;border-radius:8px 16px 8px 16px;border:3px solid #9a6bff;background:rgba(255,255,255,.06);color:inherit;text-align:center;min-height:110px}
+.mq9-item.on{border-color:#ffd21f;box-shadow:0 0 14px rgba(255,210,31,.7)}
+.mq9-ico{font-size:1.8rem;line-height:1}.mq9-ico svg{width:40px;height:40px}.mq9-item small{opacity:.8;font-size:.72rem}
+.mq9-chatlist{max-height:46vh;min-height:120px;overflow:auto;display:flex;flex-direction:column;gap:8px;padding:8px;border-radius:12px;background:rgba(0,0,0,.18);-webkit-overflow-scrolling:touch}
+.mq9-msg{display:flex;gap:8px;align-items:flex-start;padding:6px 8px;border-radius:12px;background:rgba(255,255,255,.07)}
+.mq9-msg.me{background:rgba(255,210,31,.16)}.mq9-msg p{margin:2px 0 0;overflow-wrap:anywhere}.mq9-msg small{opacity:.7}.mq9-msg>div{flex:1;min-width:0}
+.mq9-av{width:38px;flex:none}.mq9-av svg{width:100%;height:auto}
+.mq9-mute{background:none;border:0;font-size:1rem;opacity:.6;min-width:34px;min-height:34px}
+.mq9-form{display:flex;gap:8px;margin-top:10px}.mq9-form[hidden]{display:none}.mq9-form input{flex:1;min-width:0;font-size:16px}
+.mq9-err{color:#ff9a3c;min-height:1em}.mq9-empty{text-align:center;padding:14px}.mq9-off{text-align:center;font-weight:800}
