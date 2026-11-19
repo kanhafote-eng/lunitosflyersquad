@@ -299,3 +299,5 @@ html[data-theme=day] .mq9-panel{background:#fff;color:#1a1250;border-color:#1a12
 .scan-box .row{display:flex;gap:8px;margin-top:8px}.scan-box .alt{flex:1;min-height:44px;border-radius:10px;border:2px solid #ffd21f;background:transparent;color:#fff;font-weight:800}
 .scan-box h2{color:#ffd21f!important}
 .scan-box .alt{color:#fff!important;opacity:1!important}
+.map-world.mq9-sheet .location-tool,.map-world.mq9-sheet .center-tool,.map-world.mq9-sheet #mq9-zoom,
+.map-world:has(.lunar-sheet) .location-tool,.map-world:has(.lunar-sheet) .center-tool,.map-world:has(.lunar-sheet) #mq9-zoom{display:none!important}
