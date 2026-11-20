@@ -59,3 +59,9 @@ Upload everything from the zip, but never overwrite your own `config.js`.
 - **Check you have the latest files.** Settings shows "MondQuest build 10" at the bottom. If you do not see it, the old files are still being served: make sure `index.html` and the whole `js` folder (including `js/09-lunitos.js`) were uploaded, then reload the page twice.
 - **Recover a Lunito.** On the welcome screen, "I already have a Lunito" lets a player type their code (shown in their Profile, like MQ-ABC123) or scan their QR from another phone. It brings back the nickname, Mondinos, earned total, flyers/posters/stickers, look, outfits, gadgets and minerals as they were at the last sync. Prizes already redeemed and the activity history are not restored (staff still see them in the sheet). After 30 wrong codes in 10 minutes recovery pauses for a while. The code works like a password: anyone who has the code or QR can open that Lunito, and a player who was removed from the app cannot recover.
 - **Map zoom.** The + and − buttons sit above the Center button on the map.
+
+### Nearby places & Moon route (build 11)
+- With Location on (glowing button), **Places & routes** lists the closest places first, each with its distance. With Location off the list keeps its normal order.
+- **Missions** shows a *Moon route*: the 3 places closest to the player (within 15 km). Visiting all three (logging any action at each) pays a +15 🌙 combo once. A route lasts 24 h. The player's position never leaves the phone for this: it is only used to sort and pick.
+- "Discover a place" was removed from Places & routes; **+ New place** is the only button there (the Discover mission card in Missions stays, it opens the same form).
+- Only the site zip needs uploading. `Code.gs` and the spreadsheet do not change.

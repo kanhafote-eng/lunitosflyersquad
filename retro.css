@@ -301,3 +301,8 @@ html[data-theme=day] .mq9-panel{background:#fff;color:#1a1250;border-color:#1a12
 .scan-box .alt{color:#fff!important;opacity:1!important}
 .map-world.mq9-sheet .location-tool,.map-world.mq9-sheet .center-tool,.map-world.mq9-sheet #mq9-zoom,
 .map-world:has(.lunar-sheet) .location-tool,.map-world:has(.lunar-sheet) .center-tool,.map-world:has(.lunar-sheet) #mq9-zoom{display:none!important}
+.mq10-route{margin:10px 0 14px;padding:12px;border-radius:16px;border:1px solid rgba(255,214,102,.45);background:rgba(255,255,255,.06);display:grid;gap:8px}
+.mq10-route small{opacity:.85;line-height:1.35}
+.mq10-stop{display:flex;justify-content:space-between;align-items:center;gap:8px;font-size:14px}
+.mq10-stop.done{opacity:.6}
+.mq10-dist{color:#ffd666;font-weight:700}

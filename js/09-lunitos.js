@@ -168,7 +168,7 @@ const _shell=shell;
 shell=function(){const r=_shell.apply(this,arguments);
   try{if(SOCIAL_VIEWS.includes(currentView)){const cards=document.querySelectorAll('.view section.card, .view > section');const last=cards[cards.length-1]||document.querySelector('.view');
     if(last&&!last.querySelector('.mq9-social')){last.insertAdjacentHTML('beforeend',mqSocialHtml())}}
-    if(currentView==='settings'){const c=document.querySelector('.view section.card, .view > section');if(c&&!c.querySelector('.mq9-build'))c.insertAdjacentHTML('beforeend','<p class="small mq9-build">MondQuest build 9 · 19 Nov 2026</p>')}}catch(e){}
+    if(currentView==='settings'){const c=document.querySelector('.view section.card, .view > section');if(c&&!c.querySelector('.mq9-build'))c.insertAdjacentHTML('beforeend','<p class="small mq9-build">MondQuest build 11 · 19 Nov 2026</p>')}}catch(e){}
   return r};
 
 document.addEventListener('click',e=>{
@@ -224,8 +224,8 @@ function apply(r){
   save();go('menu');toast('Welcome back, '+P.name+'! 🌙')}
 async function loadScan(){
   const add=src=>new Promise((ok,no)=>{const x=document.createElement('script');x.src=src;x.onload=ok;x.onerror=()=>no(new Error('scanner'));document.head.appendChild(x)});
-  if(!window.jsQR)await add('vendor/qr/jsQR.js?v=9');
-  if(!window.QrScan)await add('js/qrscan.js?v=9')}
+  if(!window.jsQR)await add('vendor/qr/jsQR.js?v=10');
+  if(!window.QrScan)await add('js/qrscan.js?v=10')}
 
 document.addEventListener('click',async e=>{
   const b=e.target.closest('[data-mq9]');if(!b)return;const a=b.dataset.mq9;
@@ -253,7 +253,9 @@ function placeZoom(){
   const w=document.querySelector('.map-world'),z=document.getElementById('mq9-zoom'),c=document.querySelector('.map-world .center-tool');
   if(!w||!z||!c)return;
   const wr=w.getBoundingClientRect(),cr=c.getBoundingClientRect();
+  if(!cr.width)return;
   z.style.width=cr.width+'px';z.style.left=(cr.left-wr.left)+'px';z.style.bottom=(wr.bottom-cr.top+10)+'px'}
+window.mqPlaceZoom=placeZoom;
 function paintZoom(){
   const w=document.querySelector('.map-world');if(!w)return;
   if(!document.getElementById('mq9-zoom')){
@@ -264,4 +266,11 @@ function paintZoom(){
 const _menu3=menu;menu=function(){const r=_menu3.apply(this,arguments);setTimeout(paintZoom,120);setTimeout(placeZoom,600);return r};
 window.addEventListener('resize',()=>setTimeout(placeZoom,100));window.addEventListener('orientationchange',()=>setTimeout(placeZoom,300));
 setInterval(paintZoom,3000);setTimeout(paintZoom,2500);
+})();
+
+/* hide the side buttons while the menu sheet is open (fallback for browsers without :has) */
+(function(){
+'use strict';
+function sync(){const w=document.querySelector('.map-world');if(!w)return;const on=!!w.querySelector('.lunar-sheet');if(w.classList.contains('mq9-sheet')!==on){w.classList.toggle('mq9-sheet',on);if(!on&&window.mqPlaceZoom)setTimeout(mqPlaceZoom,60)}}
+new MutationObserver(sync).observe(document.body,{childList:true,subtree:true});
 })();
