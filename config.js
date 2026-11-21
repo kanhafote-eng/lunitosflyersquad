@@ -1,7 +1,7 @@
 /* MondQuest site settings. Edit this file, not the game code. */
 window.MQ_CONFIG = {
   // Google Sheets link (step 3): paste your Apps Script web app URL and the same key you set in Code.gs.
-  sheetUrl: 'https://script.google.com/macros/s/AKfycbx9IsezpWcjJePNk1e3Uk2T8jrpC7lRfvgUF8mcXBcXQH55gPwUKiTJfWCXdMcnpMNdfQ/exec',
+  sheetUrl: 'https://script.google.com/macros/s/AKfycbyot25BpByPWWrmk4T-ij6W6SSyNE74Hz7FDuEDROiPBoaP7_eSoL7zwdM810CmUNdyng/exec',
   writeKey: 'Tomatoes6',
   // Map tiles. Leave url empty to use OpenStreetMap (fine for a small test).
   // For launch, create a free account at a tile provider (e.g. MapTiler or Stadia Maps), restrict the key to your domain,

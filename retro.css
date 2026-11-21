@@ -306,3 +306,13 @@ html[data-theme=day] .mq9-panel{background:#fff;color:#1a1250;border-color:#1a12
 .mq10-stop{display:flex;justify-content:space-between;align-items:center;gap:8px;font-size:14px}
 .mq10-stop.done{opacity:.6}
 .mq10-dist{color:#ffd666;font-weight:700}
+.mq12-pager{display:flex;overflow-x:auto;overflow-y:hidden;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;scrollbar-width:none;overscroll-behavior-x:contain;touch-action:pan-x pan-y}
+.mq12-pager::-webkit-scrollbar{display:none}
+.mq12-page{flex:0 0 100%;box-sizing:border-box;scroll-snap-align:start;scroll-snap-stop:always;display:grid;grid-template-columns:1fr 1fr;gap:8px;align-content:start;padding:2px}
+.mq12-page .button{min-height:50px}
+.mq12-dots{display:flex;justify-content:center;gap:12px;padding:30px 0 8px}
+.mq12-dot{width:10px;height:10px;padding:0;border-radius:50%;border:1px solid rgba(255,255,255,.55);background:transparent;min-height:0}
+.mq12-dot.on{background:#ffd666;border-color:#ffd666;box-shadow:0 0 8px rgba(255,214,102,.8)}
+.map-world.mq9-sheet #map-fallback,.map-world:has(.lunar-sheet) #map-fallback{display:none!important}
+.map-world.mq9-sheet .lunar-sheet{height:min(62dvh,540px)!important;max-height:none!important}
+.mq12-pager,.mq12-dots{position:relative;z-index:3}

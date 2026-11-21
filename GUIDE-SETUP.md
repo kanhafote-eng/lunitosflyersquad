@@ -65,3 +65,10 @@ Upload everything from the zip, but never overwrite your own `config.js`.
 - **Missions** shows a *Moon route*: the 3 places closest to the player (within 15 km). Visiting all three (logging any action at each) pays a +15 🌙 combo once. A route lasts 24 h. The player's position never leaves the phone for this: it is only used to sort and pick.
 - "Discover a place" was removed from Places & routes; **+ New place** is the only button there (the Discover mission card in Missions stays, it opens the same form).
 - Only the site zip needs uploading. `Code.gs` and the spreadsheet do not change.
+
+### Shared world, swipeable menu, wardrobe (build 12)
+- **Flyer drops are now shared.** When a player logs a delivery, it is sent to a new **World** tab in the sheet. Everybody's phone reads that tab every ~30 s (and when the app opens), so the place lights up as a Hot place for the rest of the players and its popup shows who delivered, how many flyers and when. The existing game rules now work between players too: a place delivered to in the last 24 h pays half points to the next courier.
+- **Sticker sightings are shared.** Each reported sighting (only ones with a precise map point) goes to the World tab; its small photo goes to a **Thumbs** tab and other players load it only when they open the pin. The pin shows the exact address, who reported it and when. The "Sticker sightings" map switch is now **on by default**.
+- To hide a bad row, type TRUE in the `Hidden` column of the World tab.
+- **Redeploy `Code.gs`** (new tabs World and Thumbs are created automatically on first use; the spreadsheet file does not need replacing). The old copy keeps working but drops and sightings stay private until you do.
+- The Moon menu is now **two swipeable pages** with two dots (tap a dot or swipe sideways). Wardrobe has no menu button any more: it is a button inside **Profile**.
