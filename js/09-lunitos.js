@@ -102,7 +102,7 @@ window.wardrobeScreen=function(){
   const cos=ownedCos(),gads=(typeof mqGadgets==='function'?mqGadgets():[]).filter(g=>state.gadgets.owned.includes(g.id));
   const card=(kind,id,icon,name,on)=>`<button type="button" class="mq9-item ${on?'on':''}" data-mq9="wear" data-kind="${kind}" data-id="${E(id)}" aria-pressed="${on?'true':'false'}"><span class="mq9-ico" aria-hidden="true">${icon}</span><b>${E(name)}</b><small>${on?'Wearing · tap to take off':'In your bag · tap to wear'}</small></button>`;
   const items=cos.map(c=>card('c',c.id,c.emoji,c.name,worn(c))).concat(gads.map(g=>card('g',g.id,gadgetSvg(g),g.name,state.gadgets.equipped.includes(g.id))));
-  shell(`<section class="card mq9-wardrobe"><button class="button quiet small" data-view="more">← Menu</button><div class="eyebrow">YOUR WARDROBE</div><h1>Wardrobe</h1><div class="mq9-preview">${courierSvg(state.user)}</div><p class="small">Tap anything to put it on or take it off. Nothing is ever lost — it all stays yours.</p><div class="mq9-items">${items.length?items.join(''):'<p class="small">Your bag is empty for now. Spend a few Mondinos in the shop or craft a gadget in Cargo and it will show up here!</p>'}</div><div class="actions"><button type="button" class="button quiet" data-mq9="reset-look">Reset look</button></div></section>`)};
+  shell(`<section class="card mq9-wardrobe"><button class="button quiet small" data-view="courier">← Profile</button><div class="eyebrow">YOUR WARDROBE</div><h1>Wardrobe</h1><div class="mq9-preview">${courierSvg(state.user)}</div><p class="small">Tap anything to put it on or take it off. Nothing is ever lost — it all stays yours.</p><div class="mq9-items">${items.length?items.join(''):'<p class="small">Your bag is empty for now. Spend a few Mondinos in the shop or craft a gadget in Cargo and it will show up here!</p>'}</div><div class="actions"><button type="button" class="button quiet" data-mq9="reset-look">Reset look</button></div></section>`)};
 function wearToggle(kind,id){
   ensure();
   if(kind==='c'){const c=CONFIG.cosmetics.find(x=>x.id===id);if(!c)return;
@@ -168,7 +168,7 @@ const _shell=shell;
 shell=function(){const r=_shell.apply(this,arguments);
   try{if(SOCIAL_VIEWS.includes(currentView)){const cards=document.querySelectorAll('.view section.card, .view > section');const last=cards[cards.length-1]||document.querySelector('.view');
     if(last&&!last.querySelector('.mq9-social')){last.insertAdjacentHTML('beforeend',mqSocialHtml())}}
-    if(currentView==='settings'){const c=document.querySelector('.view section.card, .view > section');if(c&&!c.querySelector('.mq9-build'))c.insertAdjacentHTML('beforeend','<p class="small mq9-build">MondQuest build 11 · 19 Nov 2026</p>')}}catch(e){}
+    if(currentView==='settings'){const c=document.querySelector('.view section.card, .view > section');if(c&&!c.querySelector('.mq9-build'))c.insertAdjacentHTML('beforeend','<p class="small mq9-build">MondQuest build 12 · 19 Nov 2026</p>')}}catch(e){}
   return r};
 
 document.addEventListener('click',e=>{

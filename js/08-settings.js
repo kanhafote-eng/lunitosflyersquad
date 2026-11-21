@@ -1,6 +1,6 @@
 /* MondQuest · Settings, moon-menu toggle, optional sounds. Loaded after 06-sheet.js, before 05-start.js */
 (function(){
-  const KEY='mq-settings',DEF={sound:true,places:true,sightings:false};
+  const KEY='mq-settings',DEF={sound:true,places:true,sightings:true};
   let S=Object.assign({},DEF);
   try{Object.assign(S,JSON.parse(localStorage.getItem(KEY)||'{}'))}catch(e){}
   const persist=()=>{try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}};

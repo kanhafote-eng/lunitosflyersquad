@@ -37,6 +37,7 @@ function applyRemote(r){
 const CACHE='mq-remote';
 try{const c=JSON.parse(localStorage.getItem(CACHE)||'null');if(c)applyRemote(c)}catch(e){}
 async function post(o){const r=await fetch(C.sheetUrl,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({key:C.writeKey,...o})});const j=await r.json();if(j&&j.banned&&window.mqBanned)window.mqBanned();return j}
+window.mqPost=post;
 async function loadConfig(){try{const r=await (await fetch(C.sheetUrl+'?action=config')).json();if(r.ok){try{localStorage.setItem(CACHE,JSON.stringify(r))}catch(e){}applyRemote(r);save0();return true}}catch(e){}return false}
 function save0(){try{localStorage.setItem(CONFIG.storageKey,JSON.stringify(state))}catch(e){}}
 function refreshView(){try{if(state.user&&!state.user.age&&window.mqAgeScreen){if(document.querySelector('.age-btns[data-legacy]'))return}if(currentView==='chat'||currentView==='wardrobe')return;if(typeof currentView==='string'&&!document.querySelector('input:focus,textarea:focus,select:focus'))go(currentView)}catch(e){}}
