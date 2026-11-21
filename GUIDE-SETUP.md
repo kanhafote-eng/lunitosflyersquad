@@ -72,3 +72,7 @@ Upload everything from the zip, but never overwrite your own `config.js`.
 - To hide a bad row, type TRUE in the `Hidden` column of the World tab.
 - **Redeploy `Code.gs`** (new tabs World and Thumbs are created automatically on first use; the spreadsheet file does not need replacing). The old copy keeps working but drops and sightings stay private until you do.
 - The Moon menu is now **two swipeable pages** with two dots (tap a dot or swipe sideways). Wardrobe has no menu button any more: it is a button inside **Profile**.
+
+### Build 13
+- The Moon menu now opens low, just above the Moon button, instead of at the top of the screen.
+- Fixed a flash of big + / − buttons when opening the menu (the map's own zoom buttons are hidden for good and ours stay invisible until placed).
