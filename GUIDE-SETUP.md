@@ -76,3 +76,20 @@ Upload everything from the zip, but never overwrite your own `config.js`.
 ### Build 13
 - The Moon menu now opens low, just above the Moon button, instead of at the top of the screen.
 - Fixed a flash of big + / − buttons when opening the menu (the map's own zoom buttons are hidden for good and ours stay invisible until placed).
+
+### Build 14: places at once, reports, public ranking
+- **New places go live immediately** for every player, with a tiny "unverified" tag. In Admin > Places, the "Places to check" box lists them: **Approve** removes the tag, **Reject** removes the place. A new place less than 25 m from an existing one (or with the same name within 150 m) is merged instead of duplicated.
+- **Reports** ("No flyers allowed here" / "Place doesn't exist") now reach Admin > **Reports**. At 3 different reporters the place hides itself for everyone (change the number with a `flags.hideAt` row in Config). **Keep place** puts it back, **Remove place** deletes it.
+- **Courier ranking is public**: nicknames, Lunitos with their equipped outfit, Mondinos earned. Tap a Lunito to see its stats, achievements, outfits and gadgets. Codes and locations are never shown.
+- Redeploy `Code.gs` (new tab Flags is created automatically). Upload the whole site again.
+
+### Build 15: the server keeps the score
+- **Points, material, chests, outfits, gadgets and progress are now calculated by the server (the Google Sheet), not by the phone.** The phone only reports what the player did (dropped flyers here, spotted a sticker, bought a hat…). The server checks the rules, works out the points and sends the real numbers back. Editing the phone's saved data no longer gives points.
+- **It still feels instant.** The phone shows the result right away and the server confirms it a second later. With no signal, actions wait in an outbox and are sent when the connection is back. If the server refuses something (for example more flyers than the player has), the phone undoes it with a friendly message.
+- **Hot places and repeats are decided by the server** using everybody's real drops, so two players can no longer both get full points for the same place within 24 hours.
+- **Magic chests are drawn by the server**, so the sheet and every phone agree on what was found (needs a connection).
+- **Staff approvals, grants and prize refunds** now go straight into the player's real balance. Rejecting a prize request gives the Mondinos back.
+- **Material expires on the server** (15 days without activity takes the pickup points back, as before).
+- **Your players keep what they had.** The first time an existing player connects after the update, the server starts from the Mondinos, material and items stored in the sheet (Players tab), so nobody loses progress. New players start with the usual starter kit and 0 points.
+- New column **State** in the Players tab (created automatically). It holds the player's real numbers; please do not edit it by hand. To give or take points use Admin > Players > Grant, or the Wallet/Earned columns are only a mirror.
+- **Redeploy `Code.gs`** (Deploy > Manage deployments > edit > New version) **and upload the whole site**. If you upload the site without redeploying, players will see their points reset to what the server holds: redeploy first.

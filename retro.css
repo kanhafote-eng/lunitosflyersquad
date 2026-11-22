@@ -322,3 +322,16 @@ html[data-theme=day] .mq9-panel{background:#fff;color:#1a1250;border-color:#1a12
 html[data-theme] .map-world .lunar-sheet{background:none!important;border:0!important;box-shadow:none!important;padding:0!important;outline:0!important}
 .map-world .lunar-sheet .lunar-sheet-head{display:none!important}
 .map-world .lunar-sheet .lunar-sheet-scroll{overflow:visible!important;max-height:none!important;padding:0!important}
+.mq14-unv{display:inline-block;margin-left:4px;padding:0 6px;border:1px dashed rgba(255,255,255,.45);border-radius:999px;font:600 9px/15px inherit;letter-spacing:.04em;text-transform:lowercase;opacity:.7;vertical-align:middle;white-space:nowrap}
+.place-popup .mq14-unv{border-color:rgba(11,27,107,.4);color:inherit}
+.mq14-me{outline:2px solid #ffd666;border-radius:14px}
+.mq14-detail{margin:-2px 0 10px;padding:12px;border-radius:14px;border:1px solid rgba(255,255,255,.18);background:rgba(255,255,255,.06);display:grid;gap:10px}
+.mq14-hero{display:flex;gap:12px;align-items:center}
+.mq14-hero svg{width:84px;height:100px;flex:none}
+.mq14-chips{display:flex;flex-wrap:wrap;gap:6px}
+.mq14-chip{padding:2px 9px;border-radius:999px;background:rgba(255,255,255,.12);font-size:12px}
+.mq14-items{display:flex;flex-wrap:wrap;gap:6px}
+.mq14-item{display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:10px;background:rgba(255,214,102,.14);font-size:12px}
+.mq14-item svg{width:20px;height:20px}
+.mq14-pos{font-weight:800;min-width:34px;text-align:center}
+.mq14-row{display:flex!important;align-items:center;gap:10px;text-align:left}.mq14-row>span:nth-child(3){flex:1;min-width:0}.mq14-row>b{flex:none;margin-left:auto}.mq14-row .rank-avatar{flex:none}
