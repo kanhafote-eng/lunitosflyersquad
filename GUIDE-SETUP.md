@@ -100,3 +100,9 @@ Upload everything from the zip, but never overwrite your own `config.js`.
 - Photos: size of each photo, download (one or all), delete.
 - Game: night mode by default, translucent menu buttons, discreet + / − zoom at the bottom-left (hidden while the menu is open).
 - Supabase: redeploy the Edge Function `api` with the new `index.ts` and run `supabase/migracion-build16.sql` once.
+
+## Build 17 – neon map, Lunitos on the map, celebrations
+- The map is now drawn from OpenFreeMap vector tiles in a neon retro style (no key needed). If a phone cannot do WebGL, or anything fails, the old map appears instead. To switch the neon map off, add `neonMap: false,` to `config.js`.
+- Lunitos on the map: yours while you glow, and other players only if they chose to share. Positions are shown roughly (about 200 m grid), expire after 30 minutes, and under-16 players are never shown.
+- Celebrations (points, level up, prize requested) only appear after the server confirms. Players can switch them off, and enable vibration, in Settings.
+- Supabase: redeploy `index.ts` (no SQL migration needed this time). Upload `vendor/maplibre/` too.
