@@ -28,7 +28,7 @@ function applyRemote(r){
       g.cost=num(x.cost);g.rank=num(x.rank)||g.rank;g.min={};['comet','meteor','nebula','void','rings'].forEach(k=>{if(num(x[k])>0)g.min[k]=num(x[k])})}}
   if(r.places){const sy=S();const remote=new Map(r.places.map(p=>[String(p.id),p]));
     r.places.forEach(p=>{const id=String(p.id);let l=state.places.find(x=>x.id===id);
-      const f={name:String(p.name),type:String(p.type),posterSize:String(p.posterSize||'A4'),address:String(p.address||''),lat:num(p.lat),lng:num(p.lng),spot:String(p.spot||''),notes:String(p.notes||''),retired:false,remote:true};
+      const f={name:String(p.name),type:String(p.type),posterSize:String(p.posterSize||'A4'),address:String(p.address||''),lat:num(p.lat),lng:num(p.lng),spot:String(p.spot||''),notes:String(p.notes||''),retired:false,remote:true,verified:p.verified!==false};
       if(l)Object.assign(l,f);else state.places.push({id,discoverer:String(p.addedBy||'Zirkus Mond'),createdAt:Date.now(),closed:false,ratings:{},status:'needs',lastUpdated:Date.now(),...f})});
     state.places.forEach(p=>{if((p.remote||/^seed-/.test(p.id))&&!remote.has(p.id)){p.retired=true}})}
   if(r.news){state.newsPages=[...r.news.map(n=>({id:'sheet-'+n.id,title:String(n.title),body:String(n.body),type:String(n.type||'new flyers'),image:n.image||svgData('#f6bd4e'),sheet:true})),...state.newsPages.filter(n=>!n.demo&&!n.sheet)];state.newsSeeded=true}
@@ -37,14 +37,14 @@ function applyRemote(r){
 const CACHE='mq-remote';
 try{const c=JSON.parse(localStorage.getItem(CACHE)||'null');if(c)applyRemote(c)}catch(e){}
 async function post(o){const r=await fetch(C.sheetUrl,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({key:C.writeKey,...o})});const j=await r.json();if(j&&j.banned&&window.mqBanned)window.mqBanned();return j}
-window.mqPost=post;
+window.mqPost=post;window.mqRefresh=()=>{try{refreshView()}catch(e){}};
 async function loadConfig(){try{const r=await (await fetch(C.sheetUrl+'?action=config')).json();if(r.ok){try{localStorage.setItem(CACHE,JSON.stringify(r))}catch(e){}applyRemote(r);save0();return true}}catch(e){}return false}
 function save0(){try{localStorage.setItem(CONFIG.storageKey,JSON.stringify(state))}catch(e){}}
 function refreshView(){try{if(state.user&&!state.user.age&&window.mqAgeScreen){if(document.querySelector('.age-btns[data-legacy]'))return}if(currentView==='chat'||currentView==='wardrobe')return;if(typeof currentView==='string'&&!document.querySelector('input:focus,textarea:focus,select:focus'))go(currentView)}catch(e){}}
 
 function snapshot(){const u=state.user;if(!u)return null;const inv=state.inventory||{};
   return{code:u.code,name:u.name,wallet:state.wallet,earned:state.earned,flyers:inv.flyers||0,posters:inv.posters||0,stickers:inv.stickers||0,age:u.age||'',extras:mqExtras()}}
-function mqExtras(){try{const u=state.user,look={};Object.keys(CONFIG.look.defaults||{}).forEach(k=>{look[k]=u[k]});const A=state.accessories||{},G=state.gadgets||{};return{look,acc:{o:A.owned||[],e:A.equipped||[]},gad:{o:G.owned||[],e:G.equipped||[]},min:state.minerals||{},ch:state.chests||0,at:u.createdAt||0}}catch(e){return null}}
+function mqExtras(){try{const u=state.user,look={};Object.keys(CONFIG.look.defaults||{}).forEach(k=>{look[k]=u[k]});const A=state.accessories||{},G=state.gadgets||{};return{look,acc:{o:A.owned||[],e:A.equipped||[]},gad:{o:G.owned||[],e:G.equipped||[]},min:state.minerals||{},ch:state.chests||0,at:u.createdAt||0,cd:state.combosDone||[]}}catch(e){return null}}
 window.mqRecover=async code=>{const r=await post({action:'recoverPlayer',code});if(!r||!r.ok)throw new Error((r&&r.error)||'Could not reach the circus. Check your connection and try again.');return r};
 let busy=false;
 async function sync(){
@@ -54,8 +54,11 @@ async function sync(){
     const reds=(state.redemptionRequests||[]).filter(r=>r.type==='reward'&&r.playerCode===state.user.code&&isPending(r)&&!sy.reqs.includes(r.id)).map(r=>({id:r.id,item:r.name,cost:r.cost,category:r.category}));
     const pls=(state.places||[]).filter(p=>!p.remote&&!/^seed-/.test(p.id)&&p.discoverer===state.user.name&&!p.retired&&!sy.places.includes(p.id)).slice(0,5);
     const pks=(state.pickupRequests||[]).filter(r=>r.awaiting&&r.status==='pending'&&r.playerCode===String(state.user.code)&&!sy.pk.includes(r.id)).slice(0,5);
-    const res=await post({action:'sync',player:snapshot(),pickups:pks.map(r=>({id:r.id,flyers:r.quantities.flyers,posters:r.quantities.posters,stickers:r.quantities.stickers})),entries:entries.map(h=>({id:h.id,type:h.type,label:h.label,amount:h.amount,at:new Date(h.at).toISOString()})),redemptions:reds,places:pls.map(p=>({id:p.id,name:p.name,type:p.type,posterSize:p.posterSize,address:p.address,lat:p.lat,lng:p.lng,spot:p.spot,notes:p.notes}))});
-    if(res&&res.ok){if(entries.length)sy.lastAt=Math.max(...entries.map(h=>h.at));reds.forEach(r=>sy.reqs.push(r.id));pks.forEach(r=>sy.pk.push(r.id));pls.forEach(p=>sy.places.push(p.id));save0()}
+    const res=await post({action:'sync',player:snapshot(),snap:window.mqEcon&&mqEcon.snap(),pickups:pks.map(r=>({id:r.id,flyers:r.quantities.flyers,posters:r.quantities.posters,stickers:r.quantities.stickers})),entries:entries.map(h=>({id:h.id,type:h.type,label:h.label,amount:h.amount,at:new Date(h.at).toISOString()})),redemptions:reds,places:pls.map(p=>({id:p.id,name:p.name,type:p.type,posterSize:p.posterSize,address:p.address,lat:p.lat,lng:p.lng,spot:p.spot,notes:p.notes}))});
+    if(res&&res.ok){if(entries.length)sy.lastAt=Math.max(...entries.map(h=>h.at));reds.forEach(r=>sy.reqs.push(r.id));pks.forEach(r=>sy.pk.push(r.id));pls.forEach(p=>sy.places.push(p.id));
+      if(res.dups){let any=false;Object.keys(res.dups).forEach(id=>{const l=state.places.find(x=>x.id===id);if(l&&!l.retired){l.retired=true;l.dupOf=res.dups[id];any=true}});if(any){try{toast('Someone already added that spot, so we merged it. ✨');refreshMarkers()}catch(e){}}}
+      if(res.state&&window.mqEcon)mqEcon.adopt(res.state);
+      save0()}
   }catch(e){}finally{busy=false}
 }
 async function pull(){
@@ -67,9 +70,9 @@ async function pull(){
     (res.grants||[]).forEach(g=>{
       if(!sy.applied.includes(g.id)){
         const q={flyers:num(g.flyers),posters:num(g.posters),stickers:num(g.stickers)};
-        if(q.flyers||q.posters||q.stickers){state.inventory.flyers+=q.flyers;state.inventory.posters+=q.posters;state.inventory.stickers+=q.stickers;mqBatchAdd(q);
+        if(q.flyers||q.posters||q.stickers){
           history('grant',(g.type==='pickup'?'Pickup approved · ':'Staff restock · ')+[q.flyers&&q.flyers+' flyers',q.posters&&q.posters+' posters',q.stickers&&q.stickers+' stickers'].filter(Boolean).join(', '),0);toast(g.type==='pickup'?'Pickup approved! Material added to your bag.':'Staff added material to your bag.')}
-        const p=num(g.points);if(p){state.wallet+=p;if(p>0)state.earned+=p;history('grant',(g.note||'Admin adjustment'),p);if(g.type!=='pickup')toast((p>0?'+':'')+p+' Mondinos from the circus team.')}
+        const p=num(g.points);if(p){history('grant',(g.note||'Admin adjustment'),p);if(g.type!=='pickup')toast((p>0?'+':'')+p+' Mondinos from the circus team.')}
         sy.applied.push(g.id);if(sy.applied.length>100)sy.applied.shift();changed=true}
       sy.ack.push(g.id)});
     (res.pickups||[]).forEach(pk=>{const r=(state.pickupRequests||[]).find(x=>x.id===pk.id&&x.awaiting&&x.status==='pending');if(!r)return;
@@ -77,7 +80,8 @@ async function pull(){
       else if(pk.status==='rejected'){r.status='rejected';r.awaiting=false;r.resolvedAt=Date.now();toast('The staff declined a pickup request.');changed=true}});
     (res.redemptions||[]).forEach(rd=>{const r=(state.redemptionRequests||[]).find(x=>x.id===rd.id);if(!r||!isPending(r))return;
       if(rd.status==='delivered'){r.status='delivered';r.resolvedAt=Date.now();history('redemption-approved','Delivery verified · '+r.name,0,{requestId:r.id});toast('Prize delivered: '+r.name);changed=true}
-      else if(rd.status==='rejected'){state.wallet+=r.cost;const it=state.rewards.find(x=>x.id===r.itemId);if(it)it.stock++;r.status='rejected';r.resolvedAt=Date.now();history('redemption-refund','Rejected prize · '+r.name,-r.cost,{requestId:r.id});toast('Prize request rejected. Mondinos refunded.');changed=true}});
+      else if(rd.status==='rejected'){const it=state.rewards.find(x=>x.id===r.itemId);if(it)it.stock++;r.status='rejected';r.resolvedAt=Date.now();history('redemption-refund','Rejected prize · '+r.name,-r.cost,{requestId:r.id});toast('Prize request rejected. Mondinos refunded.');changed=true}});
+    if(res.state&&window.mqEcon&&mqEcon.adopt(res.state))changed=true;
     if(changed){save0();refreshView()}
   }catch(e){}
 }

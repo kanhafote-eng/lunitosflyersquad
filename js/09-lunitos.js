@@ -168,7 +168,7 @@ const _shell=shell;
 shell=function(){const r=_shell.apply(this,arguments);
   try{if(SOCIAL_VIEWS.includes(currentView)){const cards=document.querySelectorAll('.view section.card, .view > section');const last=cards[cards.length-1]||document.querySelector('.view');
     if(last&&!last.querySelector('.mq9-social')){last.insertAdjacentHTML('beforeend',mqSocialHtml())}}
-    if(currentView==='settings'){const c=document.querySelector('.view section.card, .view > section');if(c&&!c.querySelector('.mq9-build'))c.insertAdjacentHTML('beforeend','<p class="small mq9-build">MondQuest build 12 · 19 Nov 2026</p>')}}catch(e){}
+    if(currentView==='settings'){const c=document.querySelector('.view section.card, .view > section');if(c&&!c.querySelector('.mq9-build'))c.insertAdjacentHTML('beforeend','<p class="small mq9-build">MondQuest build 16 · 23 Nov 2026</p>')}}catch(e){}
   return r};
 
 document.addEventListener('click',e=>{
@@ -254,7 +254,7 @@ function placeZoom(){
   if(!w||!z||!c)return;
   const wr=w.getBoundingClientRect(),cr=c.getBoundingClientRect();
   if(!cr.width)return;
-  z.style.width=cr.width+'px';z.style.left=(cr.left-wr.left)+'px';z.style.bottom=(wr.bottom-cr.top+10)+'px'}
+  z.classList.add('ready')}
 window.mqPlaceZoom=placeZoom;
 function paintZoom(){
   const w=document.querySelector('.map-world');if(!w)return;

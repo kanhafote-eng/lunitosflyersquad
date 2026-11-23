@@ -12,6 +12,7 @@ try{if(!localStorage.getItem('mq-sv12')){localStorage.setItem('mq-sv12','1');con
 /* ---------- send my drops and sightings ---------- */
 let pushing=false;
 async function push(){
+  if(window.mqEcon)return;   // build 15: the server records drops and sightings itself
   if(pushing||!state.user||!navigator.onLine||!window.mqPost)return;const me=myCode();if(!me)return;
   const items=[];
   (state.deliveries||[]).forEach(d=>{if(items.length>=10||d.remoteW||String(d.playerCode)!==me||!d.id||sent.has(d.id)||!d.placeId)return;
@@ -74,5 +75,5 @@ save=function(){const r=_save.apply(this,arguments);clearTimeout(t);t=setTimeout
 setTimeout(()=>{push();pull()},3500);
 setInterval(()=>{if(!document.hidden){push();pull()}},30000);
 document.addEventListener('visibilitychange',()=>{if(!document.hidden){push();pull()}});
-window.mqWorld={push,pull};
+window.mqWorld={push,pull,redraw};
 })();
