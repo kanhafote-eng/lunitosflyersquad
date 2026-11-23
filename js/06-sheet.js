@@ -109,7 +109,7 @@ window.mqPresence={online:()=>rOnline,sharing:()=>rSharing};
 async function presence(extra){
   if(!state.user||!navigator.onLine)return;
   if(mqAgeU16())extra=undefined;
-  try{const look={...playerSnapshot()};delete look.code;delete look.name;
+  try{const look={...playerSnapshot()};delete look.code;delete look.name;try{look.equipped=((state.accessories&&state.accessories.equipped)||[]).slice(0,12);look.gadgetsOn=((state.gadgets&&state.gadgets.equipped)||[]).slice(0,8)}catch(e){}
     const res=await post({action:'presenceSync',player:{code:state.user.code,name:state.user.name},look,...(extra||{})});
     if(res&&res.ok){rOnline=res.online||[];rSharing=res.sharing||[];try{refreshPresenceList();if(leafletInstance)refreshMarkers();if(currentView==='players'&&window.playersScreen&&!document.querySelector('input:focus'))playersScreen()}catch(e){}}
   }catch(e){}
@@ -130,7 +130,7 @@ shareLocation=function(){
     const code=String(state.user.code),entry={code,name:state.user.name,avatar:playerSnapshot(),lat:pos.coords.latitude,lng:pos.coords.longitude,updatedAt:Date.now(),expires:Date.now()+30*60*1000};
     try{localStorage.setItem(presenceKey(code),JSON.stringify(entry))}catch(e){}
     presence({lat:pos.coords.latitude,lng:pos.coords.longitude});refreshPresenceList();refreshMarkers();
-    toast('Location shared with other players for 30 minutes (rounded to about 100 m).')},
+    toast('Location shared with other players for 30 minutes (shown only roughly, within a couple of hundred metres).')},
     ()=>toast('Could not get your location. Nothing was shared.'),{enableHighAccuracy:false,timeout:10000,maximumAge:0})};
 const _stop=stopLocationShare;
 stopLocationShare=function(){_stop();presence({stop:true})};

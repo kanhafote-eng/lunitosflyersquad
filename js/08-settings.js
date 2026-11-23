@@ -1,6 +1,6 @@
 /* MondQuest · Settings, moon-menu toggle, optional sounds. Loaded after 06-sheet.js, before 05-start.js */
 (function(){
-  const KEY='mq-settings',DEF={sound:true,places:true,sightings:true};
+  const KEY='mq-settings',DEF={sound:true,places:true,sightings:true,effects:true,vibe:false};
   let S=Object.assign({},DEF);
   try{Object.assign(S,JSON.parse(localStorage.getItem(KEY)||'{}'))}catch(e){}
   const persist=()=>{try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}};
@@ -54,11 +54,13 @@
       </div>
       <h2>Sound</h2>
       ${sw('sound','Sounds','Soft taps and coin chimes')}
+      ${sw('effects','Celebrations','Little sparkles when you earn points or level up')}
+      ${sw('vibe','Vibration','A tiny buzz with each celebration')}
       <h2>Map</h2>
       ${sw('places','Distribution places','Show place pins on the map')}
       ${sw('sightings','Sticker sightings','Show reported stickers on the map')}
       ${mqAgeU16()?'':`<h2>Location</h2>
-      <p class="small">Sharing is always optional. While you share, other players can see your approximate position (about 100 m) on the map for up to 30 minutes. Tap “Stop sharing” to disappear at once.</p>
+      <p class="small">Sharing is always optional. While you share, other players can see your approximate position (only roughly, within a couple of hundred metres) on the map for up to 30 minutes. Tap “Stop sharing” to disappear at once.</p>
       <div class="actions"><button type="button" class="button quiet" data-action="location-on">Share my location now</button><button type="button" class="button quiet" data-action="location-off">Stop sharing</button></div>
       <div id="online-list" class="online-list">Checking who is online…</div>
       <div class="actions"><button type="button" class="button quiet" data-view="players">See players online</button></div>

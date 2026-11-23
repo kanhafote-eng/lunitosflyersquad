@@ -8,7 +8,7 @@ let q=[];try{q=JSON.parse(localStorage.getItem(QK)||'[]')}catch(e){q=[]}
 const keep=()=>{try{localStorage.setItem(QK,JSON.stringify(q.slice(-200)))}catch(e){}};
 const me=()=>String(state.user&&state.user.code||'');
 const nid=p=>p+Date.now().toString(36)+Math.floor(Math.random()*1e4).toString(36);
-let busy=false,timer=0;
+let busy=false,timer=0,celeNow=null;
 
 function snap(){try{return{dist:state.distributed||{},pl:(state.history||[]).filter(h=>h.type==='discover').length,fp:!!state.firstPickupDone}}catch(e){return{}}}
 function enq(it){if(!me())return;if(!it.id)it.id=nid('i');q.push(it);keep();clearTimeout(timer);timer=setTimeout(flush,1200)}
@@ -18,7 +18,9 @@ function adopt(S){
   if(!S||q.length||!state||!state.user)return false;
   const sig=()=>JSON.stringify([state.wallet||0,state.earned||0,[state.inventory.flyers,state.inventory.posters,state.inventory.stickers],Object.values(state.minerals||{}),state.chests||0,state.adventure?state.adventure.left:null,[...(state.gadgets&&state.gadgets.owned||[])].sort(),[...(state.accessories&&state.accessories.owned||[])].sort(),[...(state.combosDone||[])].sort()]);
   const before=sig();
+  const cele=celeNow;celeNow=null;
   state.wallet=S.w;state.earned=S.e;
+  try{window.mqFx&&mqFx.settle(S.e,cele)}catch(e){}
   state.inventory={...(state.inventory||{}),...S.inv};
   state.distributed={...(state.distributed||{}),...S.dist};
   state.carry=S.carry||0;
@@ -57,8 +59,11 @@ async function flush(){
     if(!res||!res.ok)return;
     const done=new Set(batch.map(i=>i.id));q=q.filter(i=>!done.has(i.id));keep();
     (res.results||[]).forEach(r=>{if(!r.ok&&!r.dup){const it=batch.find(i=>i.id===r.id);if(it)undo(it,r.err)}});
+    const okIts=(res.results||[]).filter(r=>r.ok&&!r.dup).map(r=>batch.find(i=>i.id===r.id)).filter(Boolean);
+    celeNow=(celeNow||[]).concat(okIts.map(i=>i.t));
+    try{okIts.filter(i=>i.t==='redeem').forEach(i=>{const rw=(state.rewards||[]).find(x=>x.id===i.itemId);window.mqFx&&mqFx.redeem(rw&&rw.name)})}catch(e){}
     window.mqEcon.last=res;
-    if(!q.length)adopt(res.state);else{busy=false;setTimeout(flush,50)}
+    if(!q.length){adopt(res.state);celeNow=null}else{busy=false;setTimeout(flush,50)}
   }catch(e){}finally{busy=false}}
 window.mqEcon={adopt,snap,flush,enq,queue:()=>q.slice(),last:null};
 setInterval(()=>{if(!document.hidden)flush()},30000);setTimeout(flush,3000);

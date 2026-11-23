@@ -14,7 +14,7 @@ function closeModal(){const o=document.getElementById('mq9-modal');if(o)o.remove
 const _share=shareLocation;
 shareLocation=function(){
   if(state.user&&state.user.glowSeen)return _share.apply(this,arguments);
-  modal(`<div class="mq9-emoji" aria-hidden="true">✨</div><h2>Want to glow on the map?</h2><p>Other Lunitos will see roughly where you are (about 100 m) for 30 minutes. You can switch it off anytime by tapping the glowing Location button.</p><div class="mq9-row"><button type="button" class="button primary" data-mq9="glow-yes">Let's glow</button><button type="button" class="button quiet" data-mq9="glow-no">Not now</button></div>`)};
+  modal(`<div class="mq9-emoji" aria-hidden="true">✨</div><h2>Want to glow on the map?</h2><p>Other Lunitos will see your Lunito roughly where you are (within a couple of hundred metres) for 30 minutes. You can switch it off anytime by tapping the glowing Location button.</p><div class="mq9-row"><button type="button" class="button primary" data-mq9="glow-yes">Let's glow</button><button type="button" class="button quiet" data-mq9="glow-no">Not now</button></div>`)};
 const _stop=stopLocationShare;
 stopLocationShare=function(){const r=_stop.apply(this,arguments);paintGlow();return r};
 function glowing(){
@@ -168,7 +168,7 @@ const _shell=shell;
 shell=function(){const r=_shell.apply(this,arguments);
   try{if(SOCIAL_VIEWS.includes(currentView)){const cards=document.querySelectorAll('.view section.card, .view > section');const last=cards[cards.length-1]||document.querySelector('.view');
     if(last&&!last.querySelector('.mq9-social')){last.insertAdjacentHTML('beforeend',mqSocialHtml())}}
-    if(currentView==='settings'){const c=document.querySelector('.view section.card, .view > section');if(c&&!c.querySelector('.mq9-build'))c.insertAdjacentHTML('beforeend','<p class="small mq9-build">MondQuest build 16 · 23 Nov 2026</p>')}}catch(e){}
+    if(currentView==='settings'){const c=document.querySelector('.view section.card, .view > section');if(c&&!c.querySelector('.mq9-build'))c.insertAdjacentHTML('beforeend','<p class="small mq9-build">MondQuest build 17 · 23 Nov 2026</p>')}}catch(e){}
   return r};
 
 document.addEventListener('click',e=>{
