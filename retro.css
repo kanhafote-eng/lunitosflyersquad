@@ -335,3 +335,10 @@ html[data-theme] .map-world .lunar-sheet{background:none!important;border:0!impo
 .mq14-item svg{width:20px;height:20px}
 .mq14-pos{font-weight:800;min-width:34px;text-align:center}
 .mq14-row{display:flex!important;align-items:center;gap:10px;text-align:left}.mq14-row>span:nth-child(3){flex:1;min-width:0}.mq14-row>b{flex:none;margin-left:auto}.mq14-row .rank-avatar{flex:none}
+
+/* ===== build 16: discreet zoom bottom-left, translucent menu ===== */
+.mq9-zoom{left:12px!important;right:auto!important;bottom:calc(18px + env(safe-area-inset-bottom))!important;width:34px!important;gap:6px;opacity:.82}
+.mq9-zoom button{background:rgba(16,12,60,.55)!important;color:#e9e4ff!important;border:1.5px solid rgba(190,170,255,.55)!important;border-radius:10px!important;box-shadow:none!important;backdrop-filter:blur(3px);-webkit-backdrop-filter:blur(3px)}
+.mq9-zoom button:active{background:rgba(120,90,255,.6)!important}
+html[data-theme] .lunar-sheet .button:not(.primary),html[data-theme] .more-grid .button:not(.primary),html[data-theme] .menu-grid .button:not(.primary){background:linear-gradient(180deg,rgba(255,255,255,.10) 0 46%,rgba(255,255,255,0) 47%),rgba(34,47,128,.52)!important;border-color:rgba(190,175,255,.55)!important;box-shadow:none!important;backdrop-filter:blur(2px);-webkit-backdrop-filter:blur(2px)}
+html[data-theme] .lunar-sheet .button.primary,html[data-theme] .more-grid .button.primary{opacity:.9}

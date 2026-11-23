@@ -1,16 +1,158 @@
-<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex"><title>MondQuest · Admin</title><link rel="stylesheet" href="panel.css"></head><body><div class="wrap" id="app"></div>
-<script src="config.js"></script><script src="js/api.js"></script><script src="vendor/qr/jsQR.js"></script><script src="js/qrscan.js"></script><script>
-const app=$('#app');let D=null,tab='Rewards';
-const TABS=[['Rewards','Prizes'],['Cosmetics','Outfits'],['Gadgets','Gadgets'],['Config','Points & rules'],['Combos','Combos'],['Ranks','Ranks'],['Places','Places'],['News','News'],['Players','Players'],['Banners','Announcements'],['Chat','Chat'],['Photos','Photos'],['Flags','Reports'],['Pickups','Pickups'],['Log','Activity']];
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex"><title>MondQuest · Admin</title><link rel="stylesheet" href="panel.css"></head><body>
+<script src="config.js"></script><script src="js/api.js"></script><script src="js/shell.js"></script><script src="vendor/qr/jsQR.js"></script><script src="js/qrscan.js"></script><script>
+let D=null,tab='dashboard',pFilter='',pSearch='';
+const NAV=[
+ {id:'dashboard',label:'Overview',icon:'dash',group:''},
+ {id:'Players',label:'Players',icon:'users',group:'People'},
+ {id:'Chat',label:'Chat',icon:'chat',group:'People'},
+ {id:'Flags',label:'Reports',icon:'flag',group:'People'},
+ {id:'Pickups',label:'Pickups',icon:'box',group:'Desk'},
+ {id:'Log',label:'Activity',icon:'list',group:'Desk'},
+ {id:'Rewards',label:'Prizes',icon:'gift',group:'Game'},
+ {id:'Cosmetics',label:'Outfits',icon:'shirt',group:'Game'},
+ {id:'Gadgets',label:'Gadgets',icon:'tool',group:'Game'},
+ {id:'Config',label:'Points & rules',icon:'sliders',group:'Game'},
+ {id:'Combos',label:'Combos',icon:'star',group:'Game'},
+ {id:'Ranks',label:'Ranks',icon:'medal',group:'Game'},
+ {id:'Places',label:'Places',icon:'pin',group:'Content'},
+ {id:'News',label:'News',icon:'news',group:'Content'},
+ {id:'Banners',label:'Announcements',icon:'mega',group:'Content'},
+ {id:'Photos',label:'Photos',icon:'photo',group:'Content'}];
+const SUB={dashboard:'How the game is going right now.',Players:'Find, edit, block or remove players.',Chat:'Moon chat settings and latest messages.',Flags:'Places that players reported.',Pickups:'Material requests waiting for approval.',Log:'The latest things players did.',Rewards:'Prizes players can ask for.',Cosmetics:'Outfits players can buy or find in chests.',Gadgets:'Gadgets crafted with minerals.',Config:'Points and rules. Change only the Value column.',Combos:'Bonus points for milestones.',Ranks:'Ranks and the Mondinos needed.',Places:'Where flyers can be left. New places show up here to check.',News:'News shown to players.',Banners:'Announcements on every player’s main screen.',Photos:'Sticker photos players shared, and the space they use.'};
+const nf=n=>Number(n||0).toLocaleString('en-GB');
+const fmtB=b=>{b=Number(b)||0;return b<1024?b+' B':b<1048576?(b/1024).toFixed(0)+' KB':b<1073741824?(b/1048576).toFixed(1)+' MB':(b/1073741824).toFixed(2)+' GB'};
+const ago=v=>{const t=new Date(v).getTime();if(!t)return'–';const m=Math.round((Date.now()-t)/60000);return m<2?'just now':m<60?m+' min ago':m<1440?Math.round(m/60)+' h ago':Math.round(m/1440)+' d ago'};
+const COLORS=['#5AB0FF','#FF5FB0','#FFD21F','#6EE7A8','#b69cff','#ffb347'];
+const colorOf=s=>COLORS[[...String(s)].reduce((a,c)=>a+c.charCodeAt(0),0)%COLORS.length];
+const rankName=n=>{const r=(D&&D.Ranks&&D.Ranks.rows||[]).slice().sort((a,b)=>a.rank-b.rank)[n-1];return r?r.name:'Rank '+n};
+
+function login(msg){document.body.innerHTML=`<div class="wrap"><div class="card login"><h1>Admin</h1><p class="sub">MondQuest · Zirkus Mond</p><br><form id="f"><input id="pin" type="password" placeholder="Admin PIN" autocomplete="off" style="width:100%"><br><br><button style="width:100%">Enter</button></form><p class="hint">${esc(msg||'')}</p></div></div>`;
+ $('#f').onsubmit=async e=>{e.preventDefault();Api.setPin($('#pin').value);try{await load();boot()}catch(x){Api.clear();login(x.message)}}}
+async function load(){D=await Api.call('adminGet');try{D.Pickups={rows:(await Api.call('staffPickups',{all:true})).rows}}catch(e){D.Pickups={rows:[],old:true}}
+ D.Players={rows:(await Api.call('adminPlayers')).rows};D.Log={rows:(await Api.call('adminLog')).rows.reverse()};
+ try{D.stats=await Api.call('adminStats')}catch(e){D.stats=null}}
+function badges(){const q=D.stats&&D.stats.queues||{},pl=D.stats&&D.stats.places||{};
+ Shell.badge('Pickups',D.Pickups.rows.filter(r=>r.Status==='pending').length);Shell.badge('Flags',q.reports||0);
+ Shell.badge('Places',D.Places.rows.filter(r=>['submitted','unverified','flagged'].includes(r.status)).length)}
+function render(){Shell.go(Shell.current())}
+function boot(){
+ Shell.mount({title:'Admin',items:NAV,onSignOut:()=>{Api.clear();login()},
+  onReload:async()=>{try{await load();render();toast('Reloaded')}catch(x){toast(x.message,1)}},
+  onSelect:(id,pg,it)=>{tab=id;pg.innerHTML=`<div class="page-head"><div><h1>${esc(it.label)}</h1><p class="sub">${esc(SUB[id]||'')}</p></div></div><div id="body"></div>`;badges();
+   const V={dashboard:dashboard,Players:players,Pickups:pickupsView,Log:logView,Photos:photosView,Banners:bannersView,Chat:chatView,Flags:flagsView};
+   (V[id]||editor)()}});
+ Shell.start()}
+
+/* ---------- overview ---------- */
+function bars(series,key,color,label){const mx=Math.max(1,...series.map(x=>x[key]));
+ return `<div class="bars" style="--bc:${color}">${series.map(x=>`<i style="height:${Math.max(3,x[key]/mx*100)}%" data-t="${esc(x.d.slice(5))}: ${nf(x[key])} ${label}"></i>`).join('')}</div><div class="axis"><span>${esc(series[0].d.slice(5))}</span><span>${esc(series[series.length-1].d.slice(5))}</span></div>`}
+function dashboard(){
+ const s=D.stats;if(!s){$('#body').innerHTML='<div class="card"><p class="warn">The overview needs the latest server code (adminStats). Update the Edge Function and reload.</p></div>';return}
+ const m=s.material,p=s.players,ph=s.photos,GB=1073741824,DBMAX=524288000;
+ const pct=(a,b)=>b?Math.min(100,Math.round(a/b*100)):0;
+ const rate=pct(m.delivered.flyers,m.collected.flyers);
+ $('#body').innerHTML=`
+ <div class="tiles">
+  <div class="tile b"><div class="lbl">Players</div><div class="big">${nf(p.total)}</div><div class="sm">+${nf(p.new24h)} today · +${nf(p.new7d)} this week</div></div>
+  <div class="tile g"><div class="lbl">Active</div><div class="big">${nf(p.active24h)}</div><div class="sm">last 24 h · ${nf(p.active7d)} this week</div></div>
+  <div class="tile y"><div class="lbl">Flyers delivered</div><div class="big">${nf(m.delivered.flyers)}</div><div class="sm">of ${nf(m.collected.flyers)} collected · ${rate}%</div></div>
+  <div class="tile p"><div class="lbl">Posters placed</div><div class="big">${nf(m.delivered.posters)}</div><div class="sm">of ${nf(m.collected.posters)} collected</div></div>
+  <div class="tile o"><div class="lbl">Stickers placed</div><div class="big">${nf(m.delivered.stickers)}</div><div class="sm">of ${nf(m.collected.stickers)} collected</div></div>
+  <div class="tile b"><div class="lbl">Stickers spotted</div><div class="big">${nf(s.stickers.total)}</div><div class="sm">${nf(s.stickers.week)} this week</div></div>
+  <div class="tile g"><div class="lbl">Places</div><div class="big">${nf(s.places.active)}</div><div class="sm">${nf(s.places.added7d)} added this week · ${nf(s.places.unverified)} to check</div></div>
+  <div class="tile y"><div class="lbl">Mondinos earned</div><div class="big">${nf(Math.round(s.mondinos.earned))}</div><div class="sm">${nf(Math.round(s.mondinos.wallet))} in wallets</div></div>
+ </div>
+ <div class="card"><h2>Needs your attention</h2><div class="attn">
+  <a data-go="Pickups" class="${s.queues.pickups?'hot':''}"><b>${s.queues.pickups}</b><span>pickups waiting</span></a>
+  <a data-go="Flags" class="${s.queues.reports?'hot':''}"><b>${s.queues.reports}</b><span>reported places</span></a>
+  <a data-go="Places" class="${s.places.unverified+s.places.flagged?'hot':''}"><b>${s.places.unverified+s.places.flagged}</b><span>places to check</span></a>
+  <a data-go="Players" class=""><b>${nf(p.banned)}</b><span>blocked players</span></a>
+  <a style="cursor:default"><b>${s.queues.prizes}</b><span>prizes with the staff</span></a></div></div>
+ <div class="three">
+  <div class="card"><h2>New players · 14 days</h2>${bars(s.daily,'players','#5AB0FF','new')}</div>
+  <div class="card"><h2>Flyers delivered · 14 days</h2>${bars(s.daily,'flyers','#FFD21F','flyers')}</div>
+  <div class="card"><h2>Stickers spotted · 14 days</h2>${bars(s.daily,'stickers','#FF5FB0','stickers')}</div></div>
+ <div class="two">
+  <div class="card top10"><h2>Ranking · top ${s.top.length}</h2>${s.top.map((t,i)=>`<div class="r"><span class="n">${i<3?['🥇','🥈','🥉'][i]:i+1}</span><span class="av" style="--ac:${colorOf(t.name)}">${esc(String(t.name).slice(0,1))}</span><span class="nm"><b>${esc(t.name)}</b><small>${esc(rankName(t.rank))} · ${nf(t.flyers)} flyers · seen ${esc(ago(t.lastSeen))}</small></span><b class="v">${nf(Math.round(t.earned))}</b></div>`).join('')||'<p class="hint">No players yet.</p>'}
+   <div class="row" style="margin-top:8px"><button class="alt sm" data-go="Players">See all players</button></div></div>
+  <div class="card"><h2>Photos and space</h2>
+   <div class="row" style="justify-content:space-between"><span><b style="font-size:1.6rem;color:var(--y)">${nf(ph.count)}</b> photos${ph.picked?` · ⭐ ${ph.picked} picked`:''}</span><button class="alt sm" data-go="Photos">Open photos</button></div>
+   <p class="hint" style="margin:10px 0 4px">Photo storage: <b>${fmtB(ph.bytes)}</b> of 1 GB (free plan) ${ph.unknownSize?`· ${ph.unknownSize} older photos without size`:''}</p>
+   <div class="meter ${ph.bytes/GB>.8?'warnm':''}"><i style="width:${Math.max(1,pct(ph.bytes,GB))}%"></i></div>
+   <p class="hint" style="margin:12px 0 4px">Database: <b>${fmtB(s.dbBytes)}</b> of 500 MB (free plan)</p>
+   <div class="meter ${s.dbBytes/DBMAX>.8?'warnm':''}"><i style="width:${Math.max(1,pct(s.dbBytes,DBMAX))}%"></i></div>
+   <p class="hint" style="margin-top:10px">Tip: download the photos you like and delete the rest to free space.</p></div></div>`;
+ document.querySelectorAll('[data-go]').forEach(a=>a.onclick=()=>Shell.go(a.dataset.go))}
+
+/* ---------- players ---------- */
+const stBadge=r=>r.Access==='banned'?'<span class="pill banned">blocked</span>':r.Access==='nochat'?'<span class="pill nochat">muted</span>':'<span class="pill ok">active</span>';
+function players(){
+ const q=(pFilter||pSearch).trim().toLowerCase();
+ const all=D.Players.rows.filter(r=>!(String(r.Name)==='(deleted)'&&r.Access==='banned')||q),rows=q?all.filter(r=>String(r.Name).toLowerCase().includes(q)||String(r.Code).toLowerCase().includes(q)):all;
+ $('#body').innerHTML=`<div class="card"><div class="row" style="margin-bottom:10px"><input class="srch" id="psr" placeholder="Search by nickname or code" value="${esc(pFilter||pSearch)}"><button class="alt" id="pscan">Scan player QR</button><span class="hint">${rows.length} of ${D.Players.rows.length} players</span></div>
+ <div class="grid"><table><tr><th>Player</th><th>Rank</th><th>Mondinos</th><th>Earned</th><th>Flyers</th><th>Bag</th><th>Last seen</th><th>Status</th><th></th></tr>
+ ${rows.map(r=>`<tr><td><div class="row" style="flex-wrap:nowrap;gap:9px"><span class="av" style="--ac:${colorOf(r.Name)}">${esc(String(r.Name).slice(0,1))}</span><span><b>${esc(r.Name)}</b><br><span class="hint">${esc(r.Code)}${r.Trust&&r.Trust!=='new'?' · '+esc(r.Trust):''}</span></span></div></td><td>${esc(rankName(r.rank))}</td><td>${nf(r.Wallet)}</td><td>${nf(r.Earned)}</td><td>${nf(r.dFlyers)}</td><td class="hint">${nf(r.Flyers)}/${nf(r.Posters)}/${nf(r.Stickers)}</td><td class="hint">${esc(ago(r.LastSeen))}</td><td>${stBadge(r)}</td>
+ <td><div class="row" style="flex-wrap:nowrap"><button class="sm" data-pe="${esc(r.Code)}">Edit</button><button class="alt sm" data-pb="${esc(r.Code)}">${r.Access==='banned'?'Unblock':'Block'}</button></div></td></tr>`).join('')||'<tr><td colspan="9" class="hint">No players found.</td></tr>'}</table></div></div>`;
+ $('#psr').oninput=e=>{pFilter='';pSearch=e.target.value;const c=e.target.selectionStart;players();const n=$('#psr');n.focus();try{n.setSelectionRange(c,c)}catch(x){}};
+ $('#pscan').onclick=()=>QrScan.open(c=>{pFilter=c;pSearch='';players()});
+ document.querySelectorAll('[data-pe]').forEach(b=>b.onclick=()=>editPlayer(b.dataset.pe));
+ document.querySelectorAll('[data-pb]').forEach(b=>b.onclick=async()=>{const r=D.Players.rows.find(x=>x.Code===b.dataset.pb),on=r.Access!=='banned';
+  if(on&&!confirm('Block '+r.Name+'? They will be locked out of the whole game. You can unblock them any time.'))return;
+  try{await Api.call('adminPlayerSave',{code:r.Code,access:on?'banned':''});r.Access=on?'banned':'';toast(on?'Player blocked':'Player unblocked');players()}catch(e){toast(e.message,1)}})}
+function modal(html){const m=document.createElement('div');m.className='modal';m.innerHTML=`<div class="box">${html}</div>`;m.onclick=e=>{if(e.target===m)m.remove()};document.body.appendChild(m);return m}
+function editPlayer(code){
+ const r=D.Players.rows.find(x=>x.Code===code);if(!r)return;
+ const m=modal(`<h2>Edit ${esc(r.Name)} <span class="hint">${esc(r.Code)}</span></h2>
+ <div class="fields"><label class="full">Nickname<input id="e-name" maxlength="24" value="${esc(r.Name)}"></label>
+ <label>Status<select id="e-acc"><option value="" ${!r.Access?'selected':''}>Active</option><option value="nochat" ${r.Access==='nochat'?'selected':''}>Muted in chat</option><option value="banned" ${r.Access==='banned'?'selected':''}>Blocked (removed from app)</option></select></label>
+ <label>Trust<select id="e-tr">${['new','trusted','flagged'].map(o=>`<option ${o===r.Trust?'selected':''}>${o}</option>`).join('')}</select></label>
+ <label>Age group<select id="e-age"><option value="" ${!r.Age?'selected':''}>Not set</option><option value="16+" ${r.Age==='16+'?'selected':''}>16 or older</option><option value="u16" ${r.Age==='u16'?'selected':''}>Under 16</option></select></label>
+ <label class="full">Notes (only you see them)<input id="e-notes" maxlength="200" value="${esc(r.Notes)}"></label></div>
+ <h3 style="margin-top:14px">Correct numbers <span class="hint">· leave empty to keep as is</span></h3>
+ <div class="fields"><label>Mondinos<input id="e-w" type="number" min="0" placeholder="${esc(r.Wallet)}"></label><label>Earned in total<input id="e-e" type="number" min="0" placeholder="${esc(r.Earned)}"></label>
+ <label>Flyers in bag<input id="e-f" type="number" min="0" placeholder="${esc(r.Flyers)}"></label><label>Posters in bag<input id="e-p" type="number" min="0" placeholder="${esc(r.Posters)}"></label><label>Stickers in bag<input id="e-s" type="number" min="0" placeholder="${esc(r.Stickers)}"></label></div>
+ <h3 style="margin-top:14px">Give or take Mondinos</h3>
+ <div class="row"><input id="g-pts" type="number" placeholder="± points" style="max-width:120px"><input id="g-note" placeholder="Reason (the player sees it)"><button class="alt sm" id="g-go">Send</button></div>
+ <div class="row" style="margin-top:18px;justify-content:space-between"><button class="bad sm" id="e-del">Delete player…</button><span class="row"><button class="alt" id="e-x">Cancel</button><button id="e-ok">Save</button></span></div>`);
+ m.querySelector('#e-x').onclick=()=>m.remove();
+ m.querySelector('#g-go').onclick=async()=>{const p=Number(m.querySelector('#g-pts').value);if(!p)return toast('Enter points',1);try{await Api.call('adminGrant',{code,points:p,note:m.querySelector('#g-note').value});toast('Sent to the player');await load();m.remove();players()}catch(e){toast(e.message,1)}};
+ m.querySelector('#e-ok').onclick=async()=>{const v=id=>m.querySelector(id).value;
+  const b={code,name:v('#e-name'),access:v('#e-acc'),trust:v('#e-tr'),age:v('#e-age'),notes:v('#e-notes')};
+  [['wallet','#e-w'],['earned','#e-e'],['flyers','#e-f'],['posters','#e-p'],['stickers','#e-s']].forEach(([k,id])=>{if(v(id)!=='')b[k]=Number(v(id))});
+  try{await Api.call('adminPlayerSave',b);toast('Saved');await load();m.remove();players()}catch(e){toast(e.message,1)}};
+ m.querySelector('#e-del').onclick=()=>{m.remove();deletePlayer(r)}}
+function deletePlayer(r){
+ const m=modal(`<h2 style="color:var(--p)">Delete ${esc(r.Name)}?</h2>
+ <p>This erases their points, bag, deliveries, sightings, chat messages, activity and sticker photos. <b>It cannot be undone.</b></p>
+ <label class="hint"><input type="checkbox" id="d-bl" checked> Keep their code blocked, so the phone cannot sign up again</label>
+ <p class="hint" style="margin-top:12px">To confirm, type the nickname: <b>${esc(r.Name)}</b></p><input id="d-c" style="width:100%" autocomplete="off">
+ <div class="row" style="margin-top:14px;justify-content:flex-end"><button class="alt" id="d-x">Cancel</button><button class="bad" id="d-go" disabled>Delete for good</button></div>`);
+ const go=m.querySelector('#d-go');m.querySelector('#d-x').onclick=()=>m.remove();
+ m.querySelector('#d-c').oninput=e=>{go.disabled=e.target.value.trim().toLowerCase()!==String(r.Name).trim().toLowerCase()};
+ go.onclick=async()=>{go.disabled=true;try{await Api.call('adminPlayerDelete',{code:r.Code,confirm:m.querySelector('#d-c').value,block:m.querySelector('#d-bl').checked});toast('Player deleted');await load();m.remove();badges();players()}catch(e){toast(e.message,1);go.disabled=false}}}
+
+/* ---------- photos ---------- */
+let phPick=false;
+async function photosView(){
+ $('#body').innerHTML='<div class="card"><p class="hint">Loading…</p></div>';
+ try{const r=await Api.call('adminPhotos',{pick:phPick,offset:0});drawPhotos(r,r.items)}catch(e){$('#body').innerHTML='<div class="card"><p class="hint">'+esc(e.message)+'</p></div>'}}
+function drawPhotos(r,items){
+ const st=D.stats&&D.stats.photos,GB=1073741824;
+ $('#body').innerHTML=`<div class="card"><div class="row" style="justify-content:space-between"><b>${nf(r.total)} photos</b>${st?`<span class="hint">${fmtB(st.bytes)} used of 1 GB</span>`:''}</div>${st?`<div class="meter ${st.bytes/GB>.8?'warnm':''}" style="margin:8px 0"><i style="width:${Math.max(1,Math.min(100,Math.round(st.bytes/GB*100)))}%"></i></div>`:''}
+ <div class="row" style="margin:10px 0"><button class="${phPick?'alt':''}" id="phAll">All photos</button><button class="${phPick?'':'alt'}" id="phPick">⭐ Picked only</button><span style="flex:1"></span><button class="alt sm" id="phDl">⬇ Download these ${items.length}</button></div>
+ <p class="hint">Players agreed we might share these on social media. ⭐ marks the ones you want to use. Download them, then delete the ones you do not need to free space.</p>
+ <div class="phgrid" id="phg">${items.map(photoCard).join('')||'<p class="hint">No photos yet.</p>'}</div>${r.next!=null?'<div class="row" style="margin-top:10px"><button class="alt" id="phMore">Show more</button></div>':''}</div>`;
+ $('#phAll').onclick=()=>{phPick=false;photosView()};$('#phPick').onclick=()=>{phPick=true;photosView()};
+ $('#phMore')&&($('#phMore').onclick=async()=>{try{const n=await Api.call('adminPhotos',{pick:phPick,offset:r.next});drawPhotos(n,items.concat(n.items))}catch(e){toast(e.message,1)}});
+ $('#phDl').onclick=async()=>{let n=0;for(const p of items){if(!p.download)continue;const a=document.createElement('a');a.href=p.download;a.download=p.file||'photo.jpg';document.body.appendChild(a);a.click();a.remove();n++;await new Promise(z=>setTimeout(z,450))}toast(n?'Downloading '+n+' photos… (allow multiple downloads if your browser asks)':'Nothing to download')};
+ document.querySelectorAll('[data-pk]').forEach(b=>b.onclick=async()=>{const on=b.dataset.on!=='1';try{await Api.call('adminPhotoPick',{id:b.dataset.pk,pick:on});b.dataset.on=on?'1':'';b.textContent=on?'⭐ Picked':'☆ Pick';const it=items.find(x=>x.id===b.dataset.pk);if(it)it.pick=on}catch(e){toast(e.message,1)}});
+ document.querySelectorAll('[data-pd]').forEach(b=>b.onclick=async()=>{if(!confirm('Delete this photo for good? Download it first if you want to keep it.'))return;try{await Api.call('adminPhotoDelete',{id:b.dataset.pd});toast('Photo deleted');try{D.stats=await Api.call('adminStats')}catch(e){}photosView()}catch(e){toast(e.message,1)}})}
+function photoCard(p){return `<div class="phc"><div class="phimg">${p.thumb?`<img src="${esc(p.thumb)}" alt="Sticker photo by ${esc(p.nick)}" loading="lazy">`:'<span class="hint">No preview</span>'}</div><b>${esc(p.nick)}</b><span class="hint">${esc([p.city,p.country].filter(Boolean).join(', '))} · ${esc(String(p.at).slice(0,10))}${p.size?' · '+fmtB(p.size):''}</span>
+ <div class="row" style="flex-wrap:wrap;gap:6px"><button class="sm" data-pk="${esc(p.id)}" data-on="${p.pick?'1':''}">${p.pick?'⭐ Picked':'☆ Pick'}</button>${p.download?`<a class="btn" href="${esc(p.download)}" download="${esc(p.file)}">⬇ Download</a>`:''}<button class="alt sm" data-pd="${esc(p.id)}" title="Delete">🗑</button></div></div>`}
+
+
 const NEW={Rewards:{id:'',name:'',category:'merch',cost:50,stock:10,active:true},Cosmetics:{id:'',name:'',kind:'accessory',cost:5,rank:1,active:true},Gadgets:{id:'',name:'',cost:5,rank:1,comet:0,meteor:0,nebula:0,void:0,rings:0,active:true},Combos:{id:'',stat:'places',at:5,bonus:10,label:''},Ranks:{rank:'',name:'',earned:0},Places:{id:'',name:'',type:'cafe',posterSize:'A4',address:'',lat:52.51,lng:13.45,spot:'',notes:'',active:true,status:'approved',addedBy:'admin'},News:{id:'',title:'',body:'',image:'',type:'new flyers',active:true}};
 const LOCK={Config:['Key','Unit','What it does'],Places:['status','addedBy','updatedAt'],News:['updatedAt']};
-function login(msg){app.innerHTML=`<div class="card login"><h1>Admin</h1><p class="sub">MondQuest · Zirkus Mond</p><form id="f"><input id="pin" type="password" placeholder="Admin PIN" autocomplete="off" style="width:100%"><br><br><button style="width:100%">Enter</button></form><p class="hint">${esc(msg||'')}</p></div>`;
- $('#f').onsubmit=async e=>{e.preventDefault();Api.setPin($('#pin').value);try{await load();render()}catch(x){Api.clear();login(x.message)}}}
-async function load(){D=await Api.call('adminGet');try{D.Pickups={rows:(await Api.call('staffPickups',{all:true})).rows}}catch(e){D.Pickups={rows:[],old:true}}D.Players={rows:(await Api.call('adminPlayers')).rows};D.Log={rows:(await Api.call('adminLog')).rows.reverse()}}
-function render(){app.innerHTML=`<div class="top"><div><h1>Admin panel</h1><p class="sub">Changes reach every player within a minute of saving.</p></div><span><button class="alt" id="rl">Reload</button> <button class="alt" id="out">Sign out</button></span></div>
- <div class="tabs">${TABS.map(([k,l])=>`<button class="${k===tab?'on':''}" data-t="${k}">${l}${k==='Places'&&D.Places.rows.some(r=>r.status==='submitted'||r.status==='unverified'||r.status==='flagged')?' •':''}${k==='Pickups'&&D.Pickups.rows.some(r=>r.Status==='pending')?' •':''}${k==='Redemptions'?'':''}</button>`).join('')}</div><div id="body"></div>`;
- document.querySelectorAll('[data-t]').forEach(b=>b.onclick=()=>{tab=b.dataset.t;render()});$('#out').onclick=()=>{Api.clear();login()};$('#rl').onclick=async()=>{try{await load();render();toast('Reloaded')}catch(x){toast(x.message,1)}};
- ({Players:players,Pickups:pickupsView,Log:logView,Photos:photosView,Banners:bannersView,Chat:chatView,Flags:flagsView})[tab]?({Players:players,Pickups:pickupsView,Log:logView,Photos:photosView,Banners:bannersView,Chat:chatView,Flags:flagsView})[tab]():editor()}
 function editor(){const t=D[tab],h=t.headers,rows=t.rows,lock=LOCK[tab]||[];
  const sub=rows.filter(r=>r.status==='submitted'||r.status==='unverified'||r.status==='flagged');
  $('#body').innerHTML=`${tab==='Places'&&sub.length?`<div class="card"><h2>Places to check (${sub.length})</h2><p class="hint">New places go live at once, marked “unverified”. Approve to remove the mark, or remove the place. Places with several reports hide themselves until you decide.</p>${sub.map(r=>`<div class="row" style="margin:6px 0"><b style="flex:1">${esc(r.name)} <span class="hint">${esc(r.type)} · ${esc(r.address)} · ${esc(r.addedBy)} · <a style="color:#5AB0FF" target="_blank" rel="noopener" href="https://www.openstreetmap.org/?mlat=${esc(r.lat)}&mlon=${esc(r.lng)}#map=18/${esc(r.lat)}/${esc(r.lng)}">map</a></span></b><button class="good" data-a="${esc(r.id)}">Approve</button><button class="bad" data-x="${esc(r.id)}">Reject</button></div>`).join('')}</div>`:''}
@@ -78,7 +220,7 @@ async function csvImport(){const b=$('#csvgo'),st=$('#csvst'),city=$('#csvcity')
   if(notes.length)setTimeout(()=>alert('Not imported:\n'+notes.slice(0,25).join('\n')),200)
  }catch(e){toast(e.message,1);b.disabled=false;st.textContent=''}}
 
-let pFilter='';
+
 
 async function chatView(){
  let r={rows:[],enabled:false};try{r=await Api.call('adminChat')}catch(e){toast(e.message,1)}
@@ -110,23 +252,7 @@ async function bannersView(){
  $('#bn-go').onclick=async()=>{const t=$('#bn-t').value.trim();if(!t){toast('Write a message first.',1);return}try{await Api.call('adminBanner',{text:t,emoji:$('#bn-e').value.trim()||'📣',hours:Number($('#bn-h').value)});toast('Sent! Players will see it shortly.');bannersView()}catch(e){toast(e.message,1)}};
  document.querySelectorAll('[data-bs]').forEach(b=>b.onclick=async()=>{try{await Api.call('adminBannerStop',{id:b.dataset.bs});toast('Announcement stopped');bannersView()}catch(e){toast(e.message,1)}})}
 
-let phPick=false;
-async function photosView(){
- $('#body').innerHTML='<div class="card"><h2>Sticker photos</h2><p class="hint">Loading…</p></div>';
- try{const r=await Api.call('adminPhotos',{pick:phPick,offset:0});drawPhotos(r,r.items)}catch(e){$('#body').innerHTML='<div class="card"><p class="hint">'+esc(e.message)+'</p></div>'}}
-function drawPhotos(r,items){
- $('#body').innerHTML=`<div class="card"><h2>Sticker photos (${r.total})</h2>${r.folder?'':'<p class="hint" style="color:#ff9a3c">The Drive folder is not set up yet: add PHOTO_FOLDER_ID in Script properties (see the guide).</p>'}<div class="row" style="margin-bottom:8px"><button class="${phPick?'':'alt'}" id="phAll">All photos</button><button class="${phPick?'alt':''}" id="phPick">⭐ Picked only</button></div><p class="hint">Players agreed we might share these on social media. Tap ⭐ to mark the ones you want to use, and “Open” to see the full photo in Drive.</p><div class="phgrid" id="phg">${items.map(photoCard).join('')||'<p class="hint">No photos yet.</p>'}</div>${r.next!=null?'<div class="row" style="margin-top:10px"><button class="alt" id="phMore">More</button></div>':''}</div>`;
- $('#phAll').onclick=()=>{phPick=false;photosView()};$('#phPick').onclick=()=>{phPick=true;photosView()};
- $('#phMore')&&($('#phMore').onclick=async()=>{try{const n=await Api.call('adminPhotos',{pick:phPick,offset:r.next});drawPhotos(n,items.concat(n.items))}catch(e){toast(e.message,1)}});
- document.querySelectorAll('[data-pk]').forEach(b=>b.onclick=async()=>{const on=b.dataset.on!=='1';try{await Api.call('adminPhotoPick',{id:b.dataset.pk,pick:on});b.dataset.on=on?'1':'';b.textContent=on?'⭐ Picked':'☆ Pick';const it=items.find(x=>x.id===b.dataset.pk);if(it)it.pick=on}catch(e){toast(e.message,1)}})}
-function photoCard(p){return `<div class="phc"><div class="phimg">${p.thumb?`<img src="${esc(p.thumb)}" alt="Sticker photo by ${esc(p.nick)}" loading="lazy">`:'<span class="hint">No preview</span>'}</div><b>${esc(p.nick)}</b><span class="hint">${esc([p.city,p.country].filter(Boolean).join(', '))} · ${esc(String(p.at).slice(0,10))}</span><div class="row" style="flex-wrap:nowrap"><button data-pk="${esc(p.id)}" data-on="${p.pick?'1':''}" style="min-height:34px">${p.pick?'⭐ Picked':'☆ Pick'}</button><a class="alt" style="min-height:34px;padding:6px 10px;border-radius:10px;text-decoration:none" target="_blank" rel="noopener" href="${esc(p.url)}">Open</a></div></div>`}
-function players(){const all=D.Players.rows,rows=pFilter?all.filter(r=>String(r.Code).toUpperCase()===pFilter):all;$('#body').innerHTML=`<div class="card"><h2>Players (${rows.length})</h2><div class="row" style="margin-bottom:8px"><button class="alt" id="pscan">Scan player QR</button>${pFilter?`<button class="alt" id="pall">Show all players</button><span class="hint">Showing ${esc(pFilter)}</span>`:''}</div><div class="grid"><table><tr><th>Name</th><th>Code</th><th>Mondinos</th><th>Earned</th><th>Material</th><th>Access</th><th>Last seen</th><th>Trust</th><th>Give</th></tr>${rows.map(r=>`<tr><td>${esc(r.Name)}</td><td>${esc(r.Code)}</td><td>${esc(r.Wallet)}</td><td>${esc(r.Earned)}</td><td>${esc(r.Flyers)}/${esc(r.Posters)}/${esc(r.Stickers)}</td><td><select data-ac="${esc(r.Code)}"><option value="" ${!r.Access?'selected':''}>Active</option><option value="nochat" ${r.Access==='nochat'?'selected':''}>Muted in chat</option><option value="banned" ${r.Access==='banned'?'selected':''}>Removed from app</option></select></td><td>${esc(String(r.LastSeen).slice(0,10))}</td>
- <td><select data-tr="${esc(r.Code)}">${['new','trusted','flagged'].map(o=>`<option ${o===r.Trust?'selected':''}>${o}</option>`).join('')}</select></td>
- <td><div class="row" style="flex-wrap:nowrap"><input id="pt-${esc(r.Code)}" type="number" placeholder="± pts" style="width:80px"><input id="nt-${esc(r.Code)}" placeholder="reason" style="width:120px"><button data-g="${esc(r.Code)}" style="min-height:34px">Give</button></div></td></tr>`).join('')}</table></div><p class="hint">Positive points reward, negative points correct. The player sees the note in their activity.</p></div>`;
- $('#pscan').onclick=()=>QrScan.open(c=>{pFilter=c;players();if(!D.Players.rows.some(r=>String(r.Code).toUpperCase()===c))toast('No player with code '+c,1)});$('#pall')&&($('#pall').onclick=()=>{pFilter='';players()});
- bindAccess();
- document.querySelectorAll('[data-tr]').forEach(s=>s.onchange=async()=>{try{await Api.call('adminSetTrust',{code:s.dataset.tr,trust:s.value});toast('Trust updated')}catch(e){toast(e.message,1)}});
- document.querySelectorAll('[data-g]').forEach(b=>b.onclick=async()=>{const c=b.dataset.g,p=Number($('#pt-'+c).value);if(!p)return toast('Enter points',1);try{await Api.call('adminGrant',{code:c,points:p,note:$('#nt-'+c).value});toast('Queued for the player');$('#pt-'+c).value=''}catch(e){toast(e.message,1)}})}
 function logView(){$('#body').innerHTML=`<div class="card"><h2>Latest activity</h2><div class="grid"><table><tr><th>When</th><th>Player</th><th>Type</th><th>What</th><th>Pts</th></tr>${D.Log.rows.map(r=>`<tr><td>${esc(String(r.At||r.Received).slice(0,16).replace('T',' '))}</td><td>${esc(r.PlayerName)}</td><td>${esc(r.Type)}</td><td>${esc(r.Label)}</td><td>${esc(r.Amount)}</td></tr>`).join('')}</table></div></div>`}
-Api.pin()?load().then(render).catch(()=>login()):login();
+
+Api.pin()?load().then(boot).catch(()=>login()):login();
 </script></body></html>

@@ -93,3 +93,10 @@ Upload everything from the zip, but never overwrite your own `config.js`.
 - **Your players keep what they had.** The first time an existing player connects after the update, the server starts from the Mondinos, material and items stored in the sheet (Players tab), so nobody loses progress. New players start with the usual starter kit and 0 points.
 - New column **State** in the Players tab (created automatically). It holds the player's real numbers; please do not edit it by hand. To give or take points use Admin > Players > Grant, or the Wallet/Earned columns are only a mirror.
 - **Redeploy `Code.gs`** (Deploy > Manage deployments > edit > New version) **and upload the whole site**. If you upload the site without redeploying, players will see their points reset to what the server holds: redeploy first.
+
+## Build 16 – new Admin and Staff panels
+- Side menu that stays on every page (burger button on phones). Admin opens on an **Overview** (players, flyers, posters, stickers, ranking, photos and storage used).
+- Players: search, edit, block/unblock, delete (type the nickname to confirm).
+- Photos: size of each photo, download (one or all), delete.
+- Game: night mode by default, translucent menu buttons, discreet + / − zoom at the bottom-left (hidden while the menu is open).
+- Supabase: redeploy the Edge Function `api` with the new `index.ts` and run `supabase/migracion-build16.sql` once.
