@@ -398,10 +398,12 @@ html[data-theme] .lunar-sheet .button.primary,html[data-theme] .more-grid .butto
 .map-world .leaflet-bottom.leaflet-right{top:74px;bottom:auto;right:auto;left:6px;max-width:176px}
 .map-world .leaflet-bottom.leaflet-right .leaflet-control-attribution{margin:0;font-size:8px;line-height:1.25;text-align:left}
 
-/* build 18: a clear "Home" button on every page (replaces the compass) */
-.map-sheet-close.mq-home{display:inline-flex!important;align-items:center;justify-content:center;gap:6px;width:auto!important;min-width:48px;height:46px!important;padding:0 15px 0 11px!important;border-radius:999px!important;font:900 14px/1 system-ui,sans-serif;letter-spacing:.03em;color:#1A1250!important;background:#FFD21F!important;border:3px solid #FFF5D9!important;box-shadow:0 0 0 3px #FF4FA3,0 0 18px rgba(255,79,163,.6)!important}
-.map-sheet-close.mq-home svg{width:22px;height:22px;flex:none}
-.map-sheet-close.mq-home span{display:inline}
+/* build 19: small round Home button (top) and Back arrow (bottom) */
+.map-sheet-close.mq-home{position:absolute!important;display:grid!important;place-items:center;width:44px!important;height:44px!important;min-width:0;padding:0!important;border-radius:50%!important;color:#1A1250!important;background:#FFD21F!important;border:3px solid #FFF5D9!important;box-shadow:0 0 0 2px #FF4FA3,0 0 14px rgba(255,79,163,.55)!important}
+.map-sheet-close.mq-home svg{width:26px;height:26px;flex:none}
+.mq-backbar{display:flex;justify-content:flex-start;padding:14px 4px calc(28px + env(safe-area-inset-bottom))}
+.mq-back{display:grid;place-items:center;width:52px;height:46px;padding:0;border-radius:999px;color:#FFF5D9;background:linear-gradient(#6A5AC4,#3D3390);border:2px solid #35E6FF;box-shadow:0 0 12px rgba(53,230,255,.45);cursor:pointer}
+.mq-back svg{width:26px;height:26px}
 /* address helper */
 .mq-addr{margin:6px 0 14px;padding:12px;border-radius:14px;background:rgba(53,230,255,.08);border:2px solid rgba(53,230,255,.55)}
 .mq-addr .mq-addr-here{width:100%;min-height:50px;font-size:16px}
