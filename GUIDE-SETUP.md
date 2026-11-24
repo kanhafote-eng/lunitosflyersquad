@@ -106,3 +106,11 @@ Upload everything from the zip, but never overwrite your own `config.js`.
 - Lunitos on the map: yours while you glow, and other players only if they chose to share. Positions are shown roughly (about 200 m grid), expire after 30 minutes, and under-16 players are never shown.
 - Celebrations (points, level up, prize requested) only appear after the server confirms. Players can switch them off, and enable vibration, in Settings.
 - Supabase: redeploy `index.ts` (no SQL migration needed this time). Upload `vendor/maplibre/` too.
+
+## Build 18
+- Neon map: no longer gives up for good after one hiccup (WebGL probe is done once, a lost WebGL context gets time to recover, a slow first draw is retried on the next visit). If it ever falls back, the browser console shows "[MondQuest] neon map unavailable…" with the reason.
+- Zoom +/- are on the right. Every page has a clear "Home" button (house icon) where the compass used to be.
+- Stickers: every sighting (with its small photo) is saved and shown to everybody at once, no admin step. Mondinos still follow the rules (3 per day, one per hour, none if a sticker was already found within 200 m). Hard cap: 15 stickers per player per day.
+- Star ratings are now shared: everybody sees the average and the number of votes.
+- Addresses: "Use my location", suggestions while typing (Photon/OpenStreetMap, Nominatim as backup) and tapping the map all fill the form.
+- Supabase: redeploy `index.ts` (no SQL needed). Upload the whole site again (new files: js/18-home.js, js/19-address.js).
