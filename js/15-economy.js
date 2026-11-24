@@ -59,6 +59,7 @@ async function flush(){
     if(!res||!res.ok)return;
     const done=new Set(batch.map(i=>i.id));q=q.filter(i=>!done.has(i.id));keep();
     (res.results||[]).forEach(r=>{if(!r.ok&&!r.dup){const it=batch.find(i=>i.id===r.id);if(it)undo(it,r.err)}});
+    try{(res.results||[]).forEach(r=>{if(r.ok&&!r.dup&&r.out&&r.out.noPoints){const it=batch.find(i=>i.id===r.id);if(it&&it.t==='sight')toast('Sticker saved on the map for everyone! No Mondinos this time (daily limit, or one was already found here).')}})}catch(e){}
     const okIts=(res.results||[]).filter(r=>r.ok&&!r.dup).map(r=>batch.find(i=>i.id===r.id)).filter(Boolean);
     celeNow=(celeNow||[]).concat(okIts.map(i=>i.t));
     try{okIts.filter(i=>i.t==='redeem').forEach(i=>{const rw=(state.rewards||[]).find(x=>x.id===i.itemId);window.mqFx&&mqFx.redeem(rw&&rw.name)})}catch(e){}
@@ -90,7 +91,7 @@ history=function(type,label,amount,extra){const r=_h.apply(this,arguments);
   try{
     if(type==='discover'){const h=state.history[state.history.length-1];enq({t:'discover',id:String(h&&h.id||nid('n')).slice(0,40),photo:(+amount||0)>(CONFIG.points.discover||0)})}
     else if(type==='pickup'&&extra&&extra.quantities&&!extra.staff)enq({t:'pickup',flyers:+extra.quantities.flyers||0,posters:+extra.quantities.posters||0,stickers:+extra.quantities.stickers||0});
-    else if(type==='rating'&&extra&&extra.placeId)enq({t:'rate',placeId:String(extra.placeId)});
+    else if(type==='rating'&&extra&&extra.placeId){const pl=(state.places||[]).find(x=>x.id===extra.placeId),st=pl&&pl.ratings&&pl.ratings[state.user.id||state.user.code];enq({t:'rate',placeId:String(extra.placeId),stars:+st||5})}
     else if(type==='combo'&&/^Moon route/.test(String(label||''))&&state.route)enq({t:'route',ids:state.route.ids.slice(0,3),startedAt:state.route.startedAt});
   }catch(e){}
   return r};

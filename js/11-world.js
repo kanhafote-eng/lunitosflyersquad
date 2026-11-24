@@ -31,7 +31,7 @@ let sig='',pending=false,pulling=false;
 async function pull(){
   if(pulling||!state.user||!navigator.onLine||!window.mqPost)return;const me=myCode();if(!me)return;pulling=true;
   try{const r=await mqPost({action:'worldGet',player:{code:me,name:state.user.name}});if(!r||!r.ok)return;
-    const s2=(r.drops||[]).map(d=>d.id).join(',')+'|'+(r.sights||[]).map(x=>x.id).join(',');
+    const s2=(r.drops||[]).map(d=>d.id).join(',')+'|'+(r.sights||[]).map(x=>x.id).join(',')+'|'+JSON.stringify(r.ratings||{})+JSON.stringify(r.mine||{});
     if(s2===sig)return;sig=s2;
     const haveD=new Set((state.deliveries||[]).filter(d=>!d.remoteW).map(d=>String(d.id))),haveS=new Set((state.spotted||[]).filter(x=>!x.remoteW).map(x=>String(x.id)));
     state.deliveries=(state.deliveries||[]).filter(d=>!d.remoteW);
@@ -40,6 +40,14 @@ async function pull(){
     state.spotted=(state.spotted||[]).filter(x=>!x.remoteW);
     (r.sights||[]).forEach(x=>{if(haveS.has(x.id))return;const code=x.me?me:'r:'+x.pid;
       state.spotted.push({id:x.id,addressParts:{country:x.country},exactAddress:x.text,lat:x.lat,lng:x.lng,photo:!!x.thumb,thumbnail:'',points:0,at:x.at,user:x.nick,playerCode:code,remoteW:true})});
+    try{/* everybody's star ratings: rebuild each place's ratings from the server's totals (mine stays mine) */
+      const me2=state.user.id||state.user.code,tot=r.ratings||{},mine=r.mine||{};
+      (state.places||[]).forEach(p=>{const t=tot[p.id],loc=p.ratings&&p.ratings[me2],my=mine[p.id]||loc;
+        if(!t&&!loc)return;
+        let n=(t?t.n:0),sum=(t?t.s:0);if(!mine[p.id]&&loc){n++;sum+=loc}
+        const o={};if(my)o[me2]=my;const others=n-(my?1:0),rest=sum-(my||0);
+        for(let i=0;i<others;i++){const base=Math.floor(rest/others),extra=(rest-base*others);o['w'+i]=base+(i<extra?1:0)}
+        p.ratings=o})}catch(e){}
     try{localStorage.setItem(CONFIG.storageKey,JSON.stringify(state))}catch(e){}
     redraw()}catch(e){}finally{pulling=false}}
 function redraw(){

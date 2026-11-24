@@ -92,11 +92,11 @@ function style(){if(!stylePromise){
   const f=fetch(OFM_STYLE).then(r=>r.ok?r.json():null).catch(()=>null);
   stylePromise=Promise.race([f,t]).then(b=>build(b)).catch(()=>build(null))}
   return stylePromise}
-function glOk(){try{const c=document.createElement('canvas');return !!(window.WebGLRenderingContext&&(c.getContext('webgl2')||c.getContext('webgl')))}catch(e){return false}}
+let _gl=null;function glOk(){if(_gl!==null)return _gl;try{const c=document.createElement('canvas');const g=c.getContext('webgl2')||c.getContext('webgl');_gl=!!(window.WebGLRenderingContext&&g);try{const x=g&&g.getExtension('WEBGL_lose_context');x&&x.loseContext()}catch(e){}}catch(e){_gl=false}return _gl}
 
-let broken=false;try{broken=sessionStorage.getItem('mq-neon-broken')==='1'}catch(e){}
-window.mqNeonWanted=()=>C.neonMap!==false&&!broken&&glOk();
-function fail(map){broken=true;try{sessionStorage.setItem('mq-neon-broken','1')}catch(e){}try{if(map._mqRaster&&!map._mqRasterOn){map._mqRasterOn=1;map._mqRaster()}}catch(e){}}
+let brokenAt=0;
+window.mqNeonWanted=()=>C.neonMap!==false&&(Date.now()-brokenAt>60000)&&glOk();
+function fail(map,soft,why){try{console.warn('[MondQuest] neon map unavailable, using the standard map:',why||'unknown')}catch(e){}if(!soft)brokenAt=Date.now();try{if(map._mqRaster&&!map._mqRasterOn&&map===leafletInstance&&document.body.contains(map.getContainer())){map._mqRasterOn=1;map._mqRaster()}}catch(e){}}
 function upgrade(map){
   if(!map||map._mqNeon||!window.mqNeonWanted())return;
   map._mqNeon=1;
@@ -110,12 +110,12 @@ function upgrade(map){
       map.getContainer().classList.add('mq-neon');
       try{map.attributionControl.addAttribution(ATTR)}catch(e){}
       let w=document.getElementById('map-fallback');if(w)w.hidden=true};
-    const bad=()=>{if(done)return;done=true;try{map.removeLayer(layer)}catch(e){}fail(map)};
-    mm.on('idle',ok);
-    mm.on('webglcontextlost',()=>{try{map.removeLayer(layer)}catch(e){}fail(map)});
-    setTimeout(()=>{if(!done)bad()},15000);
+    const bad=()=>{if(done||map._mqGone||!document.body.contains(map.getContainer()))return;done=true;try{map.removeLayer(layer)}catch(e){}fail(map,false,'no first draw in 30 s')};
+    mm.on('idle',ok);mm.on('load',ok);
+    let lostT=0;const cv=mm.getCanvas();layer.on('remove',()=>{map._mqGone=1;clearTimeout(lostT)});cv.addEventListener('webglcontextlost',()=>{if(map._mqGone)return;clearTimeout(lostT);lostT=setTimeout(()=>{if(map._mqGone)return;try{map.removeLayer(layer)}catch(e){}fail(map,true,'WebGL context lost')},5000)});cv.addEventListener('webglcontextrestored',()=>{clearTimeout(lostT);try{mm.triggerRepaint()}catch(e){}});
+    setTimeout(()=>{if(!done)bad()},30000);
     window.__mqNeonLayer=layer;
-  }).catch(()=>{map._mqNeon=0;fail(map)})
+  }).catch(e=>{map._mqNeon=0;fail(map,false,e&&e.message||String(e))})
 }
 const _il=initLeaflet;
 initLeaflet=function(){const r=_il.apply(this,arguments);try{window.__mqMap=leafletInstance;upgrade(leafletInstance)}catch(e){}return r};
