@@ -4,46 +4,28 @@
 <link rel="apple-touch-icon" href="assets/icon-192.png">
 <link rel="stylesheet" href="vendor/leaflet/leaflet.css">
 <script>try{var t=localStorage.getItem("mq-theme")||"night";document.documentElement.dataset.theme=t;var mt=document.querySelector("meta[name=theme-color]");if(mt)mt.content=t==="day"?"#e8dfc8":"#09131c"}catch(e){document.documentElement.dataset.theme="night"}</script>
-<link rel="stylesheet" href="styles.css?v=20">
-<link rel="stylesheet" href="retro.css?v=20">
+<link rel="stylesheet" href="styles.css?v=18">
+<link rel="stylesheet" href="retro.css?v=18">
 </head><body><div id="app"></div><div id="toast-root"></div>
 <script src="config.js"></script>
-<script src="js/01-core.js?v=20"></script>
-<script src="js/02-theme-toggle.js?v=20"></script>
-<script src="js/03-ux-layer.js?v=20"></script>
-<script src="js/04-world-ranking.js?v=20"></script>
-<script src="js/07-svg-skin.js?v=20"></script>
-<script src="js/06-sheet.js?v=20"></script>
+<script src="js/01-core.js?v=18"></script>
+<script src="js/02-theme-toggle.js?v=18"></script>
+<script src="js/03-ux-layer.js?v=18"></script>
+<script src="js/04-world-ranking.js?v=18"></script>
+<script src="js/07-svg-skin.js?v=18"></script>
+<script src="js/06-sheet.js?v=18"></script>
 <script src="vendor/qr/qrcode.js"></script>
-<script src="js/08-settings.js?v=20"></script>
-<script src="js/09-lunitos.js?v=20"></script>
-<script src="js/10-route.js?v=20"></script>
-<script src="js/11-world.js?v=20"></script>
-<script src="js/12-menu.js?v=20"></script>
-<script src="js/13-places.js?v=20"></script>
-<script src="js/14-ranking.js?v=20"></script>
-<script src="js/15-economy.js?v=20"></script>
-<script src="js/16-neon-map.js?v=20"></script>
-<script src="js/17-effects.js?v=20"></script>
-<script src="js/18-home.js?v=20"></script>
-<script src="js/19-address.js?v=20"></script>
-<script src="js/05-start.js?v=20"></script>
-<script>
-/* MondQuest build 20: Home + Back buttons, self-contained (independent of other files and caches) */
-(function(){var ST='position:fixed;z-index:900;top:max(12px,env(safe-area-inset-top));right:14px;display:inline-flex;align-items:center;gap:6px;height:46px;padding:0 15px 0 11px;border:3px solid #FF4FA3;border-radius:999px;background:#FFD21F;color:#1A1250;font:900 15px/1 system-ui,sans-serif;box-shadow:0 4px 0 #1A1250,0 0 14px rgba(255,79,163,.6);cursor:pointer;width:auto;margin:0';
-var SVG='<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 11.5 12 4l9 7.5"/><path d="M5.5 10v9.5h13V10"/><path d="M10 19.5v-5h4v5"/></svg><span>Home</span>';
-var t=0;function fix(){t=0;try{var v=document.querySelector('.view');if(!v)return;
-var onMap=!!v.querySelector('.map-world');var h=document.getElementById('mq-home-btn');
-if(onMap){if(h)h.remove();return}
-if(typeof currentView!=='undefined'&&currentView==='menu'){if(h)h.remove();return}
-if(!h){h=document.createElement('button');h.type='button';h.id='mq-home-btn';h.setAttribute('aria-label','Home');h.innerHTML=SVG;h.style.cssText=ST;
-h.addEventListener('click',function(){try{go('menu')}catch(e){location.reload()}});document.body.appendChild(h)}
-var old=v.querySelector('.map-sheet-close');if(old)old.style.display='none';
-var first=v.querySelector('button[data-view]:not(.map-sheet-close)');
-if(first&&!first.dataset.mqb){var dv=first.getAttribute('data-view'),tx=(first.textContent||'').trim();if(dv&&dv!=='menu'&&dv!=='map'&&tx&&tx.length<22&&!/^[\u2190\u2039<]/.test(tx)){first.dataset.mqb=1;first.textContent='\u2190 Back \u00b7 '+tx}}
-}catch(e){}}
-new MutationObserver(function(){clearTimeout(t);t=setTimeout(fix,60)}).observe(document.documentElement,{childList:true,subtree:true});
-setInterval(fix,1500);
-})();
-</script>
+<script src="js/08-settings.js?v=18"></script>
+<script src="js/09-lunitos.js?v=18"></script>
+<script src="js/10-route.js?v=18"></script>
+<script src="js/11-world.js?v=18"></script>
+<script src="js/12-menu.js?v=18"></script>
+<script src="js/13-places.js?v=18"></script>
+<script src="js/14-ranking.js?v=18"></script>
+<script src="js/15-economy.js?v=18"></script>
+<script src="js/16-neon-map.js?v=18"></script>
+<script src="js/17-effects.js?v=18"></script>
+<script src="js/18-home.js?v=18"></script>
+<script src="js/19-address.js?v=18"></script>
+<script src="js/05-start.js?v=18"></script>
 </body></html>
