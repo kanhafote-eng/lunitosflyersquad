@@ -162,7 +162,7 @@
 			if (this.options.interactive) L.DomUtil.addClass(canvas, "leaflet-interactive");
 			if (this.options.className) L.DomUtil.addClass(canvas, this.options.className);
 		},
-		_update: function(e) {
+		_update: function(e) { if(!this._map||!this._glMap)return;
 			if (!this._map) return;
 			this._offset = this._map.containerPointToLayerPoint([0, 0]);
 			if (this._zooming) return;
@@ -170,20 +170,20 @@
 			L.DomUtil.setPosition(container, this._roundPoint(topLeft));
 			this._transformGL(gl);
 		},
-		_transformGL: function(gl) {
+		_transformGL: function(gl) { if(!this._map||!this._glMap)return;
 			var center = this._map.getCenter();
 			gl.jumpTo({
 				center: [center.lng, center.lat],
 				zoom: this._map.getZoom() - 1
 			});
 		},
-		_pinchZoom: function(e) {
+		_pinchZoom: function(e) { if(!this._map||!this._glMap)return;
 			this._glMap.jumpTo({
 				zoom: this._map.getZoom() - 1,
 				center: this._map.getCenter()
 			});
 		},
-		_animateZoom: function(e) {
+		_animateZoom: function(e) { if(!this._map||!this._glMap)return;
 			var scale = this._map.getZoomScale(e.zoom);
 			var padding = this._map.getSize().multiplyBy(this.options.padding * scale);
 			var viewHalf = this.getSize()._divideBy(2);
@@ -194,14 +194,14 @@
 		_zoomStart: function(e) {
 			this._zooming = true;
 		},
-		_zoomEnd: function() {
+		_zoomEnd: function() { if(!this._map||!this._glMap)return;
 			var scale = this._map.getZoomScale(this._map.getZoom());
 			L.DomUtil.setTransform(this._glMap._actualCanvas, null, scale);
 			this._zooming = false;
 			this._update();
 		},
 		_transitionEnd: function(e) {
-			L.Util.requestAnimFrame(function() {
+			L.Util.requestAnimFrame(function() { if(!this._map||!this._glMap)return;
 				var zoom = this._map.getZoom();
 				var center = this._map.getCenter();
 				var offset = this._map.latLngToContainerPoint(this._map.getBounds().getNorthWest());

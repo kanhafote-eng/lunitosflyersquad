@@ -41,7 +41,9 @@ async function post(o){const r=await fetch(C.sheetUrl,{method:'POST',headers:{'C
 window.mqPost=post;window.mqRefresh=()=>{try{refreshView()}catch(e){}};
 async function loadConfig(){try{const r=await (await fetch(C.sheetUrl+'?action=config')).json();if(r.ok){try{localStorage.setItem(CACHE,JSON.stringify(r))}catch(e){}applyRemote(r);save0();return true}}catch(e){}return false}
 function save0(){try{localStorage.setItem(CONFIG.storageKey,JSON.stringify(state))}catch(e){}}
-function refreshView(){try{if(state.user&&!state.user.age&&window.mqAgeScreen){if(document.querySelector('.age-btns[data-legacy]'))return}if(currentView==='chat'||currentView==='wardrobe')return;if(typeof currentView==='string'&&!document.querySelector('input:focus,textarea:focus,select:focus'))go(currentView)}catch(e){}}
+let rvT=0,lastTouch=0;
+['touchstart','touchmove','pointerdown','wheel','scroll'].forEach(ev=>document.addEventListener(ev,()=>{lastTouch=Date.now()},{passive:true,capture:true}));
+function refreshView(){if(Date.now()-lastTouch<1500){clearTimeout(rvT);rvT=setTimeout(refreshView,1700);return}try{if(state.user&&!state.user.age&&window.mqAgeScreen){if(document.querySelector('.age-btns[data-legacy]'))return}if(currentView==='chat'||currentView==='wardrobe')return;if(typeof currentView==='string'&&!document.querySelector('input:focus,textarea:focus,select:focus'))go(currentView)}catch(e){}}
 
 function snapshot(){const u=state.user;if(!u)return null;const inv=state.inventory||{};
   return{code:u.code,name:u.name,wallet:state.wallet,earned:state.earned,flyers:inv.flyers||0,posters:inv.posters||0,stickers:inv.stickers||0,age:u.age||'',extras:mqExtras()}}
@@ -168,7 +170,10 @@ setInterval(()=>{if(!document.hidden)flushPhotos()},60000);setTimeout(flushPhoto
 
 
 /* ---------- open chat ---------- */
-window.mqChat={async sync(text){
+window.mqChat={async peek(since,mute){
+  const res=await post({action:'chatSync',peek:true,since,mute,player:{code:state.user.code,name:state.user.name}});
+  if(!res||!res.ok)throw new Error('peek failed');window.mqChatEnabled=res.enabled!==false;return res},
+async sync(text){
   const look={};Object.keys(CONFIG.look.defaults||{}).forEach(k=>{look[k]=state.user[k]});
   const res=await post({action:'chatSync',player:{code:state.user.code,name:state.user.name},look,...(text?{text}:{})});
   if(!res||!res.ok)throw new Error((res&&res.error)||'Chat is taking a nap. Try again soon.');

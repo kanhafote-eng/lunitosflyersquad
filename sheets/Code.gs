@@ -491,6 +491,14 @@ var HANDLERS = {
       appendObj_('Chat', {MsgId:'m'+nowMs.toString(36)+Math.floor(Math.random()*1296).toString(36), PlayerCode:p.code, Name:clean_(pr.Name,40), Look:lookJson_(req.look), Text:text, At:nowMs, Hidden:''});
       var sh = sh_('Chat'), n = sh.getLastRow()-1; if(n>250) sh.deleteRows(2, n-200);
     }
+    if(req.peek){
+      var since = Number(req.since)||0, mute = {}; (Array.isArray(req.mute)?req.mute:[]).slice(0,60).forEach(function(m){ mute[String(m)] = 1; });
+      var unread = 0, rows = table_('Chat').rows;
+      for(var j=rows.length-1;j>=0 && j>=rows.length-80;j--){ var rw = rows[j];
+        if(Number(rw.At) <= since) break;
+        if(String(rw.Hidden)!=='yes' && rw.PlayerCode!==p.code && !mute[pid_(rw.PlayerCode)]) unread++; }
+      return {ok:true, enabled:true, canPost:canPost, unread:unread, now:nowMs};
+    }
     var msgs = table_('Chat').rows.filter(function(r){ return String(r.Hidden)!=='yes'; }).slice(-80).map(function(r){
       var lk = {}; try{ lk = JSON.parse(r.Look||'{}'); }catch(e){}
       return {id:r.MsgId, pid:pid_(r.PlayerCode), me:r.PlayerCode===p.code, name:r.Name, look:lk, text:r.Text, at:Number(r.At)}; });

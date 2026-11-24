@@ -109,11 +109,18 @@ function wearToggle(kind,id){
     if(KEY[c.kind]){const k=KEY[c.kind];state.user[k]=state.user[k]===c.value?DEF[c.kind]:c.value}
     else{const a=state.accessories.equipped,i=a.indexOf(id);if(i>=0)a.splice(i,1);else a.push(id)}}
   else{const a=state.gadgets.equipped,i=a.indexOf(id);if(i>=0)a.splice(i,1);else{if(a.length>=3)a.shift();a.push(id)}}
-  save();const v=document.querySelector('.view'),top=v?v.scrollTop:0;wardrobeScreen();const v2=document.querySelector('.view');if(v2)v2.scrollTop=top}
+  save();if(!wardrobeSync()){const v=document.querySelector('.view'),top=v?v.scrollTop:0;wardrobeScreen();const v2=document.querySelector('.view');if(v2)v2.scrollTop=top}}
+/* update the page in place (no full redraw): keeps the scroll alive on iOS Safari */
+function wardrobeSync(){
+  try{const items=document.querySelectorAll('.mq9-wardrobe .mq9-item');if(!items.length)return false;
+    items.forEach(b=>{const k=b.dataset.kind,id=b.dataset.id;let on=false;
+      if(k==='c'){const c=CONFIG.cosmetics.find(x=>x.id===id);on=!!c&&worn(c)}else on=state.gadgets.equipped.includes(id);
+      b.classList.toggle('on',on);b.setAttribute('aria-pressed',on?'true':'false');const sm=b.querySelector('small');if(sm)sm.textContent=on?'Wearing · tap to take off':'In your bag · tap to wear'});
+    const pv=document.querySelector('.mq9-wardrobe .mq9-preview');if(pv)pv.innerHTML=courierSvg(state.user);return true}catch(e){return false}}
 function resetLook(){ensure();state.accessories.equipped=[];state.gadgets.equipped=[];Object.keys(DEF).forEach(k=>{state.user[k]=DEF[k]});save();wardrobeScreen();toast('Fresh as a new Lunito! Everything is still in your bag.')}
 
 /* ---------- open chat: one shared channel, no private messages, slides out from the map ---------- */
-let msgs=[],muted=[],timer=null,canPost=true,note='',noteAt=0,enabled=true,open=false;
+let unread=0,lastPeek=0,msgs=[],muted=[],timer=null,canPost=true,note='',noteAt=0,enabled=true,open=false;
 try{muted=JSON.parse(localStorage.getItem('mq-chat-muted')||'[]')}catch(e){}
 const saveMuted=()=>{try{localStorage.setItem('mq-chat-muted',JSON.stringify(muted))}catch(e){}};
 const hhmm=ms=>{try{return new Date(ms).toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'})}catch(e){return ''}};
@@ -121,6 +128,17 @@ function list(){
   const l=msgs.filter(m=>m.me||!muted.includes(m.pid));
   if(!l.length)return '<p class="small mq9-empty">Quiet on the moon right now. Say hi! 👋</p>';
   return l.map(m=>`<article class="mq9-msg ${m.me?'me':''}"><span class="mq9-av">${courierSvg({...CONFIG.look.defaults,...(m.look||{})})}</span><div><b>${E(m.name)}</b> <small>${hhmm(m.at)}</small><p>${E(m.text)}</p></div>${m.me?'':`<button type="button" class="mq9-mute" data-mq9="mute" data-pid="${E(m.pid)}" aria-label="Hide messages from ${E(m.name)}" title="Hide messages from ${E(m.name)}">🔇</button>`}</article>`).join('')}
+const readGet=()=>{try{return +localStorage.getItem('mq-chat-read')||0}catch(e){return 0}};
+const readSet=t=>{try{localStorage.setItem('mq-chat-read',String(t))}catch(e){}};
+function paintBadge(){const b=document.getElementById('mq9-chatbtn');if(!b)return;let k=b.querySelector('.mq9-badge');
+  if(open||!unread){if(k)k.remove();b.setAttribute('aria-label','Moon chat');return}
+  if(!k){k=document.createElement('span');k.className='mq9-badge';b.appendChild(k)}
+  k.textContent=unread>99?'99+':String(unread);b.setAttribute('aria-label','Moon chat, '+unread+' unread')}
+async function peek(){
+  if(open||document.hidden||!window.mqChatEnabled||!window.mqChat||!state.user||!document.querySelector('.map-world'))return;
+  if(!readGet())readSet(Date.now());
+  try{const r=await mqChat.peek(readGet(),muted);if(r&&r.enabled!==false){unread=r.unread||0;paintBadge()}}catch(e){}}
+function markRead(){const t=msgs.reduce((m,x)=>Math.max(m,x.at||0),0);if(t)readSet(Math.max(readGet(),t));unread=0;paintBadge()}
 function paint(){
   const l=document.getElementById('mq9-chatlist');if(!l)return;
   const near=l.scrollHeight-l.scrollTop-l.clientHeight<70;l.innerHTML=list();if(near)l.scrollTop=l.scrollHeight;
@@ -132,12 +150,12 @@ async function poll(text){
   if(!window.mqChat)return;
   try{const r=await mqChat.sync(text);msgs=r.messages||[];canPost=r.canPost!==false;enabled=r.enabled!==false;if(Date.now()-noteAt>5000)note='';
     if(!enabled){window.mqChatEnabled=false;closePanel();paintChatBtn();return}}catch(e){note=e.message||'Chat is taking a nap.';noteAt=Date.now()}
-  paint()}
+  markRead();paint()}
 function panelHtml(){
   return `<div class="mq9-panel-head"><b>💬 Moon chat</b><button type="button" data-mq9="chat-x" aria-label="Close chat">×</button></div><p class="mq9-rules">One open channel for all Lunitos. No private messages. Be kind and don't share personal details.</p><p id="mq9-off" class="mq9-off" hidden>Moon chat is resting right now. 🌙</p><div id="mq9-chatlist" class="mq9-chatlist" aria-live="polite">${list()}</div><p id="mq9-chaterr" class="small mq9-err"></p><p id="mq9-nopost" class="small" hidden>You can read the chat, but posting is switched off for you right now.</p><form id="mq9-form" class="mq9-form" autocomplete="off"><input name="t" maxlength="140" placeholder="Say something nice…" aria-label="Your message"><button class="button primary" type="submit">Send</button></form>`}
 function openPanel(){
   const w=document.querySelector('.map-world');if(!w||!window.mqChatEnabled||!window.mqChat)return;
-  closePanel();open=true;
+  closePanel();open=true;unread=0;paintBadge();
   const p=document.createElement('section');p.id='mq9-panel';p.className='mq9-panel';p.setAttribute('aria-label','Moon chat');p.innerHTML=panelHtml();w.appendChild(p);
   const b=document.getElementById('mq9-chatbtn');if(b)b.setAttribute('aria-expanded','true');
   poll();clearInterval(timer);timer=setInterval(()=>{if(!open||!document.getElementById('mq9-panel')){clearInterval(timer);return}if(!document.hidden)poll()},6000);
@@ -151,8 +169,9 @@ function paintChatBtn(){
   b=document.createElement('button');b.id='mq9-chatbtn';b.type='button';b.className='world-shortcut chat-shortcut';b.dataset.mq9='chat-toggle';
   b.setAttribute('aria-label','Moon chat');b.setAttribute('aria-expanded',open?'true':'false');b.title='Moon chat';
   b.innerHTML='<svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a8 8 0 0 1-11.6 7.1L4 20.5l1.4-4.3A8 8 0 1 1 21 12z"/><circle cx="9" cy="12" r=".6" fill="currentColor"/><circle cx="13" cy="12" r=".6" fill="currentColor"/><circle cx="17" cy="12" r=".6" fill="currentColor"/></svg>';
-  w.appendChild(b)}
-window.mqPaintChat=paintChatBtn;
+  w.appendChild(b);paintBadge()}
+window.mqPaintChat=paintChatBtn;window.mqChatPeek=peek;
+setInterval(peek,25000);setTimeout(peek,4000);document.addEventListener('visibilitychange',()=>{if(!document.hidden)setTimeout(peek,800)});
 window.chatScreen=function(){go('menu');setTimeout(()=>{paintChatBtn();openPanel()},350)};
 const _menu2=menu;menu=function(){const r=_menu2.apply(this,arguments);open=false;setTimeout(paintChatBtn,100);return r};
 setInterval(paintChatBtn,3000);setTimeout(paintChatBtn,2500);
@@ -168,7 +187,7 @@ const _shell=shell;
 shell=function(){const r=_shell.apply(this,arguments);
   try{if(SOCIAL_VIEWS.includes(currentView)){const cards=document.querySelectorAll('.view section.card, .view > section');const last=cards[cards.length-1]||document.querySelector('.view');
     if(last&&!last.querySelector('.mq9-social')){last.insertAdjacentHTML('beforeend',mqSocialHtml())}}
-    if(currentView==='settings'){const c=document.querySelector('.view section.card, .view > section');if(c&&!c.querySelector('.mq9-build'))c.insertAdjacentHTML('beforeend','<p class="small mq9-build">MondQuest build 20 · 24 Nov 2026'+(window.mqEcon&&mqEcon.queue?(mqEcon.queue().length?' · '+mqEcon.queue().length+' action(s) waiting to sync':' · all saved'):'')+'</p>')}}catch(e){}
+    if(currentView==='settings'){const c=document.querySelector('.view section.card, .view > section');if(c&&!c.querySelector('.mq9-build'))c.insertAdjacentHTML('beforeend','<p class="small mq9-build">MondQuest build 21 · 25 Nov 2026'+(window.mqEcon&&mqEcon.queue?(mqEcon.queue().length?' · '+mqEcon.queue().length+' action(s) waiting to sync':' · all saved'):'')+'</p>')}}catch(e){}
   return r};
 
 document.addEventListener('click',e=>{

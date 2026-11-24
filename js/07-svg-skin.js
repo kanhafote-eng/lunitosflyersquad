@@ -1,5 +1,5 @@
 'use strict';
-/* MondQuest · retro-futurist anime skin: SVG symbol set, emoji→SVG swap, new explainer, new Lunino. Visual layer only. */
+/* MondQuest · retro-futurist anime skin: SVG symbol set, emoji→SVG swap, new explainer, new Lunito. Visual layer only. */
 (function(){
 const Y='#FFD21F',P='#FF4FA3',C='#35E6FF',B='#3D6BFF',V='#9A6BFF',G='#4DE3A0',O='#FF8A3D',W='#FFF6E6',N='#1A1250',L='#BFD4FF';
 const hl=(d,o='.7')=>`<path d="${d}" stroke="#fff" stroke-width="2" opacity="${o}" fill="none"/>`;
@@ -115,13 +115,13 @@ function guideSteps(){
    {ic:'pin',t:'Drop them in town',b:'Leave them in cafés, shops and bars on the map. Found a new spot? Add it.',chips:[chip('flyer',fl+' = 1'),chip('poster','+'+fmt(P.posterPerItem)),chip('pin','New +'+P.discover),chip('scope','Far sticker +5 to +'+CONFIG.spotted.max)]},
    {ic:'moon',t:'Earn Mondinos',b:'Every drop pays in Mondinos. '+(mqAgeU16()?'Combos and regular days add bonuses.':'Photos, combos and regular days add bonuses.')+' Unused material expires after '+CONFIG.pickup.expiryDays+' days.',chips:[...(mqAgeU16()?[]:[chip('camera','Photo +'+P.deliveryPhoto)]),chip('star','Combos'),chip('bolt',CONFIG.regularity.days+' days / week'),chip('bell',CONFIG.pickup.expiryDays+' days')]},
    {ic:'rocket',t:'Rank up',b:'Lifetime Mondinos raise your rank. Adventures multiply your points and drop minerals and chests.',chips:[chip('rank','Ranks'),chip('comet','x2 · x3'),chip('planet','Minerals'),chip('chest','Chests')]},
-   {ic:'container',t:'Open Cargo',b:'Craft gadgets, dress your Lunino, or claim real prizes at the circus with your player code.',chips:rw.map(r=>chip(rewardIcon(r),r.cost)).concat([chip('user','Your code')])}
+   {ic:'container',t:'Open Cargo',b:'Craft gadgets, dress your Lunito, or claim real prizes at the circus with your player code.',chips:rw.map(r=>chip(rewardIcon(r),r.cost)).concat([chip('user','Your code')])}
   ]}
 window.mqGuideSteps=window.mqGuideSteps||[];
 mqRenderGuide=function(){const S=guideSteps(),i=Math.min(mqGuideIndex,S.length-1),x=S[i],last=i===S.length-1;
  app.innerHTML=`<main class="onboarding">${typeof mqOnboardingMap==='function'?mqOnboardingMap():''}<section class="onboard-panel guide-panel" aria-labelledby="onboard-title"><div class="onboard-kicker">QUICK FLIGHT MANUAL · ${String(i+1).padStart(2,'0')} / ${String(S.length).padStart(2,'0')}</div><div class="guide-progress" aria-label="Step ${i+1} of ${S.length}">${S.map((_,k)=>`<i class="${k<=i?'filled':''}"></i>`).join('')}</div><div class="guide-icon guide-hero" aria-hidden="true">${mqIcon(x.ic)}</div><h1 id="onboard-title">${x.t}</h1><p class="guide-body">${x.b}</p><div class="gchips">${x.chips.join('')}</div><div class="guide-actions"><button class="button quiet" data-action="guide-back" ${i===0?'disabled':''}>Back</button><button class="button primary onboard-next" data-action="finish-guide">${last?'Enter the atlas':'Next'} <span aria-hidden="true">→</span></button></div><button class="guide-skip" data-action="skip-guide">Skip guide</button></section></main>`};
 
-/* ---------- New Lunino: anime retro-futurist space courier ---------- */
+/* ---------- New Lunito: anime retro-futurist space courier ---------- */
 const OL='#1A1250';
 function hex(h){h=String(h).replace('#','');return[0,2,4].map(i=>parseInt(h.substr(i,2),16))}
 function mix(h,t,a){const A=hex(h),B=hex(t);return'#'+A.map((v,i)=>Math.round(v+(B[i]-v)*a).toString(16).padStart(2,'0')).join('')}

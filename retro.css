@@ -58,7 +58,7 @@ progress,.bar{border-radius:99px}
 .gchip .mq-i{width:26px;height:26px}
 .gchip b{font-weight:900}
 .guide-actions{display:flex;gap:10px}.guide-actions .button{flex:1}
-/* ---- Lunino stage: circular holo pad ---- */
+/* ---- Lunito stage: circular holo pad ---- */
 svg.creature{filter:drop-shadow(0 6px 0 rgba(0,0,0,.28))}
 .courier-card svg.creature,.profile-teaser svg.creature{background:radial-gradient(circle at 50% 60%,rgba(53,230,255,.35),transparent 66%)}
 /* ---- map chrome ---- */
@@ -436,3 +436,7 @@ html[data-theme] .lunar-sheet .button.primary,html[data-theme] .more-grid .butto
 .legal-foot{margin-top:18px;opacity:.75}
 .linkish{background:none;border:0;padding:0;color:#35E6FF;text-decoration:underline;font:inherit;cursor:pointer}
 .legal-bare{padding:14px}
+
+/* build 21: chat unread badge + scroll fallback for browsers without :has() */
+.view.mq-page{overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior-y:contain;padding-top:max(74px,calc(env(safe-area-inset-top) + 62px));padding-bottom:calc(100px + env(safe-area-inset-bottom))}
+.mq9-badge{position:absolute;top:-6px;right:-6px;min-width:20px;height:20px;padding:0 5px;border-radius:999px;background:#FF4FA3;color:#fff;border:2px solid #FFF5D9;font:900 11px/16px system-ui,sans-serif;text-align:center;box-shadow:0 0 10px rgba(255,79,163,.8);pointer-events:none}
