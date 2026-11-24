@@ -77,6 +77,29 @@ function build(base){
    {id:'label-place-small',type:'symbol',source:src,'source-layer':'place',minzoom:12,filter:cls('suburb','quarter','neighbourhood','village','hamlet'),layout:{'text-field':['upcase',['coalesce',['get','name:latin'],['get','name']]],'text-font':bold,'text-size':z([12,10,16,13]),'text-letter-spacing':.14,'text-max-width':7,'symbol-sort-key':['match',['get','class'],'suburb',0,'quarter',1,2]},paint:{'text-color':P.labelSoft,'text-halo-color':P.halo,'text-halo-width':2,'text-halo-blur':.5}},
    {id:'label-place',type:'symbol',source:src,'source-layer':'place',filter:cls('city','town','island'),layout:{'text-field':['coalesce',['get','name:latin'],['get','name']],'text-font':bold,'text-size':z([4,11,10,17,14,22]),'text-max-width':8},paint:{'text-color':P.label,'text-halo-color':P.halo,'text-halo-width':2.2,'text-halo-blur':.5}}
   ].filter(Boolean);
+  // ---- detail: shops, landmarks, park names, house numbers (shown from street-level zoom) ----
+  const IC={food:['🍴','#FFB347'],cafe:['☕','#FFD21F'],bar:['🍺','#FF4FA3'],shop:['🛍️','#35E6FF'],bakery:['🥖','#35E6FF'],health:['✚','#6EE7A8'],civic:['🏛️','#CFC2FF'],police:['🛡️','#CFC2FF'],fire:['🚒','#FF8A65'],post:['✉️','#CFC2FF'],library:['📚','#9A6BFF'],museum:['🖼️','#FF4FA3'],theatre:['🎭','#FF4FA3'],cinema:['🎬','#FF4FA3'],star:['⭐','#FFD21F'],school:['🎒','#9A6BFF'],college:['🎓','#9A6BFF'],worship:['⛪','#CFC2FF'],sport:['🏟️','#6EE7A8'],hotel:['🛏️','#CFC2FF'],train:['🚆','#35E6FF'],bus:['🚌','#35E6FF'],bank:['🏦','#CFC2FF']};
+  const CLS={restaurant:'food',fast_food:'food',food_court:'food',ice_cream:'food',cafe:'cafe',bar:'bar',pub:'bar',beer:'bar',biergarten:'bar',nightclub:'bar',
+    shop:'shop',grocery:'shop',clothing_store:'shop',department_store:'shop',mall:'shop',jewelry:'shop',books:'shop',bicycle:'shop',florist:'shop',hairdresser:'shop',beauty:'shop',laundry:'shop',optician:'shop',toys:'shop',gift:'shop',electronics:'shop',
+    pharmacy:'health',doctors:'health',dentist:'health',veterinary:'health',hospital:'health',clinic:'health',
+    town_hall:'civic',courthouse:'civic',embassy:'civic',police:'police',fire_station:'fire',post:'post',library:'library',museum:'museum',theatre:'theatre',cinema:'cinema',art_gallery:'museum',
+    attraction:'star',monument:'star',zoo:'star',school:'school',kindergarten:'school',college:'college',university:'college',place_of_worship:'worship',
+    stadium:'sport',swimming:'sport',fitness_centre:'sport',lodging:'hotel',railway:'train',bus:'bus',bank:'bank'};
+  const LAND=['town_hall','courthouse','embassy','police','fire_station','post','library','museum','theatre','cinema','art_gallery','attraction','monument','zoo','school','college','university','place_of_worship','hospital','stadium','railway'];
+  const REG=Object.keys(CLS).filter(c=>!LAND.includes(c));
+  const iconExpr=['case',['==',['get','subclass'],'bakery'],'mq-bakery',['match',['get','class'],...Object.keys(CLS).flatMap(c=>[c,'mq-'+CLS[c]]),'']];
+  const nm=['coalesce',['get','name:latin'],['get','name']];
+  const rankOk=['<=',['coalesce',['get','rank'],99],['step',['zoom'],12,15.5,30,16.5,80,17.5,999]];
+  const txt=(c)=>({'text-color':c,'text-halo-color':P.halo,'text-halo-width':1.6,'text-halo-blur':.4});
+  const DETAIL=[
+   {id:'detail-park-name',type:'symbol',source:src,'source-layer':'park',minzoom:13,filter:['has','name'],layout:{'text-field':nm,'text-font':ital,'text-size':z([13,10,17,14]),'text-letter-spacing':.08,'text-max-width':7},paint:txt('#A8F0CF')},
+   {id:'detail-poi-green',type:'symbol',source:src,'source-layer':'poi',minzoom:15,filter:cls('park','garden','playground','dog_park'),layout:{'text-field':nm,'text-font':ital,'text-size':11,'text-max-width':7,'text-optional':true},paint:txt('#A8F0CF')},
+   {id:'detail-housenumber',type:'symbol',source:src,'source-layer':'housenumber',minzoom:17,layout:{'text-field':['get','housenumber'],'text-font':reg,'text-size':z([17,9,19,12]),'text-padding':2},paint:txt('#8E7FDD')},
+   {id:'detail-poi',type:'symbol',source:src,'source-layer':'poi',minzoom:15,filter:['all',cls(...REG),rankOk],layout:{'icon-image':iconExpr,'icon-size':z([15,.5,18,.8]),'icon-padding':5,'symbol-sort-key':['coalesce',['get','rank'],99],'text-field':['step',['zoom'],'',16.5,nm],'text-font':reg,'text-size':10.5,'text-offset':[0,1.15],'text-anchor':'top','text-max-width':7,'text-optional':true},paint:txt(P.labelSoft)},
+   {id:'detail-landmark',type:'symbol',source:src,'source-layer':'poi',minzoom:14,filter:cls(...LAND),layout:{'icon-image':iconExpr,'icon-size':z([14,.62,18,1]),'icon-padding':6,'symbol-sort-key':['coalesce',['get','rank'],99],'text-field':['step',['zoom'],'',15.3,nm],'text-font':bold,'text-size':11.5,'text-offset':[0,1.25],'text-anchor':'top','text-max-width':8,'text-optional':true},paint:txt(P.label)}
+  ];
+  L.splice(L.findIndex(l=>l.id==='label-road'),0,...DETAIL);
+  window.mqNeonIcons=IC;
   return {version:8,name:'MondQuest Neon',sources:srcs,glyphs:base.glyphs||OFM_FALLBACK.glyphs,layers:L};
 }
 
@@ -94,25 +117,39 @@ function style(){if(!stylePromise){
   return stylePromise}
 let _gl=null;function glOk(){if(_gl!==null)return _gl;try{const c=document.createElement('canvas');const g=c.getContext('webgl2')||c.getContext('webgl');_gl=!!(window.WebGLRenderingContext&&g);try{const x=g&&g.getExtension('WEBGL_lose_context');x&&x.loseContext()}catch(e){}}catch(e){_gl=false}return _gl}
 
+
+/* neon badges for the map icons, drawn when the map asks for them */
+function badge(id){
+  const key=id.replace(/^mq-/,''),d=(window.mqNeonIcons||{})[key];if(!d)return null;
+  const S=3,N=26*S,c=document.createElement('canvas');c.width=c.height=N;const g=c.getContext('2d');
+  g.beginPath();g.arc(N/2,N/2,N/2-2*S,0,Math.PI*2);g.fillStyle='rgba(18,12,58,.94)';g.fill();
+  g.lineWidth=1.6*S;g.strokeStyle=d[1];g.shadowColor=d[1];g.shadowBlur=3*S;g.stroke();g.shadowBlur=0;
+  g.font=`${13*S}px "Apple Color Emoji","Noto Color Emoji","Segoe UI Emoji","Twemoji Mozilla",sans-serif`;g.textAlign='center';g.textBaseline='middle';g.fillStyle=d[1];
+  g.fillText(d[0],N/2,N/2+S*.6);
+  return g.getImageData(0,0,N,N)}
 let brokenAt=0;
 window.mqNeonWanted=()=>C.neonMap!==false&&(Date.now()-brokenAt>60000)&&glOk();
 function fail(map,soft,why){try{console.warn('[MondQuest] neon map unavailable, using the standard map:',why||'unknown')}catch(e){}if(!soft)brokenAt=Date.now();try{if(map._mqRaster&&!map._mqRasterOn&&map===leafletInstance&&document.body.contains(map.getContainer())){map._mqRasterOn=1;map._mqRaster()}}catch(e){}}
 function upgrade(map){
   if(!map||map._mqNeon||!window.mqNeonWanted())return;
-  map._mqNeon=1;
-  Promise.all([libs(),style()]).then(([,st])=>{
+  map._mqNeon=1;map._mqGone=0;
+  Promise.all([libs(),style()]).then(([,st0])=>{let st=st0;
     if(!map.getContainer||!map.getContainer()||!document.body.contains(map.getContainer()))return;   // the screen changed meanwhile
-    const layer=L.maplibreGL({style:st,padding:.25,interactive:false});
+    let det=!window.__mqLite;try{if(window.mqSettings&&mqSettings().detail===false)det=false}catch(e){}
+    if(!det){st=JSON.parse(JSON.stringify(st));st.layers.forEach(l=>{if(/^detail-/.test(l.id))l.layout=Object.assign({},l.layout,{visibility:'none'})})}
+    const layer=L.maplibreGL({style:st,padding:window.__mqLite?.05:.15,interactive:false});
     layer.addTo(map);
     const mm=layer.getMaplibreMap();let done=false;
+    mm.on('styleimagemissing',e=>{try{if(/^mq-/.test(e.id)&&!mm.hasImage(e.id)){const im=badge(e.id);if(im)mm.addImage(e.id,im,{pixelRatio:3})}}catch(x){}});
     const ok=()=>{if(done)return;done=true;
       map.eachLayer(l=>{if(l instanceof L.TileLayer&&l!==layer)map.removeLayer(l)});
       map.getContainer().classList.add('mq-neon');
       try{map.attributionControl.addAttribution(ATTR)}catch(e){}
       let w=document.getElementById('map-fallback');if(w)w.hidden=true};
     const bad=()=>{if(done||map._mqGone||!document.body.contains(map.getContainer()))return;done=true;try{map.removeLayer(layer)}catch(e){}fail(map,false,'no first draw in 30 s')};
+    mm.on('error',e=>{try{console.warn('[MondQuest] map error:',e&&e.error&&e.error.message||e)}catch(x){}});
     mm.on('idle',ok);mm.on('load',ok);
-    let lostT=0;const cv=mm.getCanvas();layer.on('remove',()=>{map._mqGone=1;clearTimeout(lostT)});cv.addEventListener('webglcontextlost',()=>{if(map._mqGone)return;clearTimeout(lostT);lostT=setTimeout(()=>{if(map._mqGone)return;try{map.removeLayer(layer)}catch(e){}fail(map,true,'WebGL context lost')},5000)});cv.addEventListener('webglcontextrestored',()=>{clearTimeout(lostT);try{mm.triggerRepaint()}catch(e){}});
+    let lostT=0;const cv=mm.getCanvas();layer.on('remove',()=>{map._mqGone=1;clearTimeout(lostT)});cv.addEventListener('webglcontextlost',()=>{if(map._mqGone)return;clearTimeout(lostT);lostT=setTimeout(()=>{if(map._mqGone)return;try{map.removeLayer(layer)}catch(e){}if(!window.__mqLite){window.__mqLite=1;console.warn('[MondQuest] map context lost, retrying lighter');map._mqNeon=0;setTimeout(()=>{try{if(document.body.contains(map.getContainer()))upgrade(map)}catch(x){}},400)}else fail(map,true,'WebGL context lost twice')},12000)});cv.addEventListener('webglcontextrestored',()=>{clearTimeout(lostT);try{mm.triggerRepaint()}catch(e){}});
     setTimeout(()=>{if(!done)bad()},30000);
     window.__mqNeonLayer=layer;
   }).catch(e=>{map._mqNeon=0;fail(map,false,e&&e.message||String(e))})

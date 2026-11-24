@@ -1,6 +1,6 @@
 /* MondQuest · Settings, moon-menu toggle, optional sounds. Loaded after 06-sheet.js, before 05-start.js */
 (function(){
-  const KEY='mq-settings',DEF={sound:true,places:true,sightings:true,effects:true,vibe:false};
+  const KEY='mq-settings',DEF={sound:true,places:true,sightings:true,effects:true,vibe:false,detail:true};
   let S=Object.assign({},DEF);
   try{Object.assign(S,JSON.parse(localStorage.getItem(KEY)||'{}'))}catch(e){}
   const persist=()=>{try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}};
@@ -57,6 +57,7 @@
       ${sw('effects','Celebrations','Little sparkles when you earn points or level up')}
       ${sw('vibe','Vibration','A tiny buzz with each celebration')}
       <h2>Map</h2>
+      ${sw('detail','Shops & landmarks','Cafés, shops, public buildings, parks and house numbers when you zoom in (applies next time the map opens)')}
       ${sw('places','Distribution places','Show place pins on the map')}
       ${sw('sightings','Sticker sightings','Show reported stickers on the map')}
       ${mqAgeU16()?'':`<h2>Location</h2>
