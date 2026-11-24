@@ -12,6 +12,7 @@ function setPath(root,key,val){const p=key.split('.');let o=root;for(let i=0;i<p
 let applied=false;
 function applyRemote(r){
   if(!r||!r.ok)return;
+  try{if(window.mqSetPickupPoints)mqSetPickupPoints(r.pickuppoints)}catch(e){}
   try{window.mqChatEnabled=r.chatEnabled===true;if(Array.isArray(r.banners)){window.mqBanners=r.banners.map(x=>({id:String(x.id),emoji:String(x.emoji||'📣'),text:String(x.text||''),endsAt:Number(x.endsAt)||0,startsAt:Number(x.startsAt)||0}));if(window.mqBannersToNews)mqBannersToNews()}setTimeout(()=>{try{if(window.mqDrawBanner)mqDrawBanner();if(window.mqPaintChat)mqPaintChat()}catch(e){}},50)}catch(e){}
   (r.config||[]).forEach(x=>{const k=String(x.Key||x.key||'');const v=num(x.Value!==undefined?x.Value:x.value);if(k)setPath(CONFIG,k,v)});
   if(r.combos&&r.combos.length)CONFIG.combos=r.combos.map(c=>({id:String(c.id),stat:String(c.stat),at:num(c.at),bonus:num(c.bonus),label:String(c.label)}));

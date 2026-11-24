@@ -16,9 +16,10 @@ const NAV=[
  {id:'Ranks',label:'Ranks',icon:'medal',group:'Game'},
  {id:'Places',label:'Places',icon:'pin',group:'Content'},
  {id:'News',label:'News',icon:'news',group:'Content'},
+ {id:'PickupPoints',label:'Pickup points',icon:'pin',group:'Content'},
  {id:'Banners',label:'Announcements',icon:'mega',group:'Content'},
  {id:'Photos',label:'Photos',icon:'photo',group:'Content'}];
-const SUB={dashboard:'How the game is going right now.',Players:'Find, edit, block or remove players.',Chat:'Moon chat settings and latest messages.',Flags:'Places that players reported.',Pickups:'Material requests waiting for approval.',Log:'The latest things players did.',Rewards:'Prizes players can ask for.',Cosmetics:'Outfits players can buy or find in chests.',Gadgets:'Gadgets crafted with minerals.',Config:'Points and rules. Change only the Value column.',Combos:'Bonus points for milestones.',Ranks:'Ranks and the Mondinos needed.',Places:'Where flyers can be left. New places show up here to check.',News:'News shown to players.',Banners:'Announcements on every player’s main screen.',Photos:'Sticker photos players shared, and the space they use.'};
+const SUB={PickupPoints:'Where players can collect flyers. Zirkus Mond HQ is always the biggest pin.',dashboard:'How the game is going right now.',Players:'Find, edit, block or remove players.',Chat:'Moon chat settings and latest messages.',Flags:'Places that players reported.',Pickups:'Material requests waiting for approval.',Log:'The latest things players did.',Rewards:'Prizes players can ask for.',Cosmetics:'Outfits players can buy or find in chests.',Gadgets:'Gadgets crafted with minerals.',Config:'Points and rules. Change only the Value column.',Combos:'Bonus points for milestones.',Ranks:'Ranks and the Mondinos needed.',Places:'Where flyers can be left. New places show up here to check.',News:'News shown to players.',Banners:'Announcements on every player’s main screen.',Photos:'Sticker photos players shared, and the space they use.'};
 const nf=n=>Number(n||0).toLocaleString('en-GB');
 const fmtB=b=>{b=Number(b)||0;return b<1024?b+' B':b<1048576?(b/1024).toFixed(0)+' KB':b<1073741824?(b/1048576).toFixed(1)+' MB':(b/1073741824).toFixed(2)+' GB'};
 const ago=v=>{const t=new Date(v).getTime();if(!t)return'–';const m=Math.round((Date.now()-t)/60000);return m<2?'just now':m<60?m+' min ago':m<1440?Math.round(m/60)+' h ago':Math.round(m/1440)+' d ago'};
@@ -39,7 +40,7 @@ function boot(){
  Shell.mount({title:'Admin',items:NAV,onSignOut:()=>{Api.clear();login()},
   onReload:async()=>{try{await load();render();toast('Reloaded')}catch(x){toast(x.message,1)}},
   onSelect:(id,pg,it)=>{tab=id;pg.innerHTML=`<div class="page-head"><div><h1>${esc(it.label)}</h1><p class="sub">${esc(SUB[id]||'')}</p></div></div><div id="body"></div>`;badges();
-   const V={dashboard:dashboard,Players:players,Pickups:pickupsView,Log:logView,Photos:photosView,Banners:bannersView,Chat:chatView,Flags:flagsView};
+   const V={dashboard:dashboard,Players:players,Pickups:pickupsView,Log:logView,Photos:photosView,Banners:bannersView,PickupPoints:pointsView,Chat:chatView,Flags:flagsView};
    (V[id]||editor)()}});
  Shell.start()}
 
@@ -251,6 +252,56 @@ async function bannersView(){
  <div class="card"><h2>Recent</h2>${rows.filter(r=>!live.includes(r)).slice(0,10).map(r=>`<div class="hint" style="margin:4px 0">${esc(r.emoji)} ${esc(r.text)} · ${esc(fmt(r.startsAt))}</div>`).join('')||'<p class="hint">No past announcements.</p>'}</div>`;
  $('#bn-go').onclick=async()=>{const t=$('#bn-t').value.trim();if(!t){toast('Write a message first.',1);return}try{await Api.call('adminBanner',{text:t,emoji:$('#bn-e').value.trim()||'📣',hours:Number($('#bn-h').value)});toast('Sent! Players will see it shortly.');bannersView()}catch(e){toast(e.message,1)}};
  document.querySelectorAll('[data-bs]').forEach(b=>b.onclick=async()=>{try{await Api.call('adminBannerStop',{id:b.dataset.bs});toast('Announcement stopped');bannersView()}catch(e){toast(e.message,1)}})}
+
+
+/* ---------- pickup points ---------- */
+const PP_COLORS=['#35E6FF','#6EE7A8','#FFD21F','#FF8A3D','#9A6BFF','#4F8BFF','#F2F2F2'];
+let ppMap=null;
+function ppLoadLeaflet(){return new Promise((ok,no)=>{if(window.L)return ok();const l=document.createElement('link');l.rel='stylesheet';l.href='vendor/leaflet/leaflet.css';document.head.appendChild(l);const sc=document.createElement('script');sc.src='vendor/leaflet/leaflet.js';sc.onload=ok;sc.onerror=()=>no(new Error('Map library not found'));document.head.appendChild(sc)})}
+async function pointsView(){
+ let pts=[];try{pts=(await Api.call('adminPickupPoints')).points||[]}catch(e){toast(e.message,1)}
+ if(!pts.find(p=>p.id==='hq'))pts.unshift({id:'hq',name:'Zirkus Mond HQ',address:'Rudolfstraße 14c, 10245 Berlin',note:'',color:'#FF4FA3',lat:52.50336,lng:13.4557,active:true});
+ pts.sort((a,b)=>(b.id==='hq')-(a.id==='hq'));
+ let pick=null,dirty=false;
+ const hue=c=>c;
+ const draw=()=>{
+  $('#body').innerHTML=`<div class="card"><h2>Pickup points</h2><p class="hint">Players see the main Zirkus Mond HQ on the map, always the biggest pin. Extra points get a smaller pin with the colour you choose, so nobody gets confused. When there is more than one point, the Pickup page shows them as a list. Changes reach phones within about a minute.</p>
+  ${pts.map((p,i)=>`<div class="card flat" style="margin:10px 0" data-i="${i}"><div class="row"><span style="width:${p.id==='hq'?34:26}px;height:${p.id==='hq'?34:26}px;border-radius:50%;background:#1A1250;border:3px solid ${esc(p.id==='hq'?'#FF4FA3':p.color)};box-shadow:0 0 10px ${esc(p.id==='hq'?'#FF4FA3':p.color)};flex:none"></span><b style="flex:1">${p.id==='hq'?'Zirkus Mond HQ <span class="pill trusted">Main</span>':esc(p.name||'New pickup point')}</b>${p.id==='hq'?'':`<label class="row" style="gap:6px"><input type="checkbox" data-f="active" ${p.active!==false?'checked':''}> Visible</label>`}</div>
+  <div class="fields" style="margin-top:8px">${p.id==='hq'?'':`<label>Name<input data-f="name" maxlength="60" value="${esc(p.name)}"></label>`}<label>Address<input data-f="address" maxlength="120" value="${esc(p.address)}"></label><label style="grid-column:1/-1">Note for players (hours, who to ask)<input data-f="note" maxlength="160" value="${esc(p.note)}"></label></div>
+  ${p.id==='hq'?'':`<div class="row" style="margin:8px 0">Colour ${PP_COLORS.map(c=>`<button type="button" data-c="${c}" title="${c}" style="width:26px;height:26px;border-radius:50%;border:3px solid ${p.color.toLowerCase()===c.toLowerCase()?'#fff':'transparent'};background:${c}"></button>`).join('')}<input type="color" data-f="color" value="${esc(p.color)}" style="width:40px;min-width:40px;flex:none;height:30px;padding:0"></div>`}
+  <div class="row"><span class="hint" style="flex:1">Position ${Number(p.lat).toFixed(5)}, ${Number(p.lng).toFixed(5)}</span><button type="button" data-pos="${i}">Set position on map</button>${p.id==='hq'?'':`<button type="button" class="bad" data-del="${i}">Delete</button>`}</div></div>`).join('')}
+  <div class="row"><button type="button" id="pp-add">+ Add pickup point</button><button type="button" class="primary" id="pp-save">Save changes</button><span class="hint" id="pp-msg"></span></div></div>
+  <div class="card" id="pp-pick" ${pick==null?'hidden':''}><h2>Set position${pick!=null?': '+esc(pts[pick].id==='hq'?'Zirkus Mond HQ':pts[pick].name||'new point'):''}</h2><p class="hint">Search an address, or tap the map to place the pin exactly. Then press “Use this position”.</p><div class="row"><input id="pp-q" placeholder="Type an address, e.g. Rudolfstraße 14c" style="flex:1"><button type="button" id="pp-s">Search</button></div><div id="pp-res" class="hint"></div><div id="pp-map" style="height:340px;border-radius:12px;margin:8px 0"></div><div class="row"><button type="button" class="primary" id="pp-use">Use this position</button><button type="button" id="pp-x">Cancel</button><span class="hint" id="pp-ll"></span></div></div>`;
+  document.querySelectorAll('[data-i]').forEach(card=>{const i=+card.dataset.i;
+   card.querySelectorAll('[data-f]').forEach(inp=>inp.addEventListener(inp.type==='checkbox'||inp.type==='color'?'change':'input',()=>{const f=inp.dataset.f;pts[i][f]=inp.type==='checkbox'?inp.checked:inp.value;dirty=true;if(f==='color'||f==='active')keep()}));
+   card.querySelectorAll('[data-c]').forEach(b=>b.onclick=()=>{pts[i].color=b.dataset.c;dirty=true;keep()})});
+  document.querySelectorAll('[data-del]').forEach(b=>b.onclick=()=>{if(!confirm('Delete this pickup point?'))return;pts.splice(+b.dataset.del,1);dirty=true;pick=null;draw()});
+  document.querySelectorAll('[data-pos]').forEach(b=>b.onclick=()=>{pick=+b.dataset.pos;draw();openMap()});
+  $('#pp-add').onclick=()=>{pts.push({id:'pp'+Date.now().toString(36),name:'',address:'',note:'',color:PP_COLORS[(pts.length-1)%PP_COLORS.length],lat:52.5034,lng:13.4557,active:true});dirty=true;pick=pts.length-1;draw();openMap();setTimeout(()=>{const n=document.querySelector(`[data-i="${pick}"] [data-f=name]`);n&&n.focus()},50)};
+  $('#pp-save').onclick=async()=>{const bad=pts.find(p=>p.id!=='hq'&&!p.name.trim());if(bad){toast('Give every extra point a name.',1);return}try{$('#pp-save').disabled=true;await Api.call('adminPickupPoints',{points:pts.map(p=>({id:p.id,name:p.id==='hq'?'Zirkus Mond HQ':p.name.trim(),address:p.address,note:p.note,color:p.color,lat:p.lat,lng:p.lng,active:p.active!==false}))});dirty=false;toast('Saved. Players will see it shortly.');pointsView()}catch(e){toast(e.message,1);$('#pp-save').disabled=false}};
+  if(pick!=null)bindPicker()};
+ const keep=()=>{const y=window.scrollY;draw();window.scrollTo(0,y);if(pick!=null)openMap()};
+ let tmp=null,mk=null;
+ async function openMap(){try{await ppLoadLeaflet()}catch(e){toast(e.message,1);return}
+  const p=pts[pick],el=$('#pp-map');if(!el)return;if(ppMap){try{ppMap.remove()}catch(x){}ppMap=null}
+  tmp={lat:Number(p.lat),lng:Number(p.lng)};ppMap=L.map(el).setView([tmp.lat,tmp.lng],17);
+  L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'© OpenStreetMap'}).addTo(ppMap);
+  mk=L.marker([tmp.lat,tmp.lng],{draggable:true}).addTo(ppMap);
+  const upd=()=>{$('#pp-ll').textContent=tmp.lat.toFixed(5)+', '+tmp.lng.toFixed(5)};upd();
+  ppMap.on('click',e=>{tmp={lat:e.latlng.lat,lng:e.latlng.lng};mk.setLatLng(e.latlng);upd()});
+  mk.on('dragend',()=>{const q=mk.getLatLng();tmp={lat:q.lat,lng:q.lng};upd()});
+  $('#pp-pick').scrollIntoView({behavior:'smooth',block:'nearest'})}
+ function bindPicker(){
+  const go2=async()=>{const q=$('#pp-q').value.trim();if(q.length<3)return;$('#pp-res').textContent='Searching…';
+   try{const r=await fetch('https://photon.komoot.io/api/?limit=5&lat=52.5034&lon=13.4557&q='+encodeURIComponent(q.includes('Berlin')?q:q+' Berlin'));const j=await r.json();
+    const fs=(j.features||[]).filter(f=>f.geometry&&f.geometry.coordinates);
+    $('#pp-res').innerHTML=fs.length?fs.map((f,k)=>{const a=f.properties||{},t=[a.name,[a.street,a.housenumber].filter(Boolean).join(' '),a.postcode,a.city].filter(Boolean).join(', ');return `<div><a href="#" data-k="${k}">${esc(t)}</a></div>`}).join(''):'No results. Try tapping the map instead.';
+    document.querySelectorAll('[data-k]').forEach(a=>a.onclick=ev=>{ev.preventDefault();const f=fs[+a.dataset.k],c=f.geometry.coordinates,p=f.properties||{};tmp={lat:c[1],lng:c[0]};mk.setLatLng([tmp.lat,tmp.lng]);ppMap.setView([tmp.lat,tmp.lng],18);$('#pp-ll').textContent=tmp.lat.toFixed(5)+', '+tmp.lng.toFixed(5);const ad=[[p.street,p.housenumber].filter(Boolean).join(' '),p.postcode,p.city].filter(Boolean).join(', ');if(ad)pts[pick]._adr=ad})
+   }catch(e){$('#pp-res').textContent='The address search is not reachable right now. Tap the map instead.'}};
+  $('#pp-s').onclick=go2;$('#pp-q').onkeydown=e=>{if(e.key==='Enter'){e.preventDefault();go2()}};
+  $('#pp-use').onclick=()=>{if(!tmp)return;const p=pts[pick];p.lat=tmp.lat;p.lng=tmp.lng;if(p._adr&&!String(p.address||'').trim())p.address=p._adr;delete p._adr;dirty=true;pick=null;if(ppMap){try{ppMap.remove()}catch(x){}ppMap=null}draw();toast('Position set. Press Save changes to publish it.')};
+  $('#pp-x').onclick=()=>{pick=null;if(ppMap){try{ppMap.remove()}catch(x){}ppMap=null}draw()}}
+ draw()}
 
 function logView(){$('#body').innerHTML=`<div class="card"><h2>Latest activity</h2><div class="grid"><table><tr><th>When</th><th>Player</th><th>Type</th><th>What</th><th>Pts</th></tr>${D.Log.rows.map(r=>`<tr><td>${esc(String(r.At||r.Received).slice(0,16).replace('T',' '))}</td><td>${esc(r.PlayerName)}</td><td>${esc(r.Type)}</td><td>${esc(r.Label)}</td><td>${esc(r.Amount)}</td></tr>`).join('')}</table></div></div>`}
 

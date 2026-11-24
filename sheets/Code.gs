@@ -37,10 +37,28 @@ function publicConfig_(){
   o.gadgets = o.gadgets.filter(function(r){return bool_(r.active);});
   o.news = o.news.filter(function(r){return bool_(r.active);});
   o.chatEnabled = bool_((findRow_('Config','Key','chat.enabled')||{}).Value);
+  o.pickuppoints = pickupPointsList_(true);
   o.banners = o.banners.filter(function(r){return bool_(r.active) && Number(r.endsAt)>Date.now();});
   o.places = o.places.filter(function(r){return bool_(r.active) && (String(r.status)==='approved' || String(r.status)==='unverified');}).map(function(r){ r.verified = String(r.status)==='approved'; return r; });
   try{ cache.put('cfg', JSON.stringify(o), 60); }catch(e){}
   return o;
+}
+
+// Extra flyer pickup points, set in Admin > Pickup points. Stored as JSON in Config (key pickup.points), no new table needed.
+function cleanPoint_(p, i){
+  p = p || {}; var lat = Number(p.lat), lng = Number(p.lng);
+  var col = /^#[0-9a-fA-F]{6}$/.test(String(p.color||'')) ? String(p.color) : '#35E6FF';
+  var id = String(p.id||'').replace(/[^a-zA-Z0-9_-]/g,'').slice(0,24) || ('pp'+Date.now().toString(36)+i);
+  return { id:id, name:clean_(p.name,60), address:clean_(p.address,120), note:clean_(p.note,160), color:col,
+    lat: isFinite(lat) && Math.abs(lat)<=90 ? lat : null, lng: isFinite(lng) && Math.abs(lng)<=180 ? lng : null,
+    active: p.active===false || String(p.active)==='false' ? false : true, main: id==='hq' };
+}
+function pickupPointsList_(onlyActive){
+  var r = findRow_('Config','Key','pickup.points'), arr = [];
+  try{ arr = r && r.Value ? JSON.parse(String(r.Value)) : []; }catch(e){ arr = []; }
+  if(!Array.isArray(arr)) arr = [];
+  arr = arr.slice(0,30).map(cleanPoint_).filter(function(p){ return p.lat!=null && p.lng!=null && (p.name || p.main); });
+  return onlyActive ? arr.filter(function(p){ return p.active; }) : arr;
 }
 function bust_(){ CacheService.getScriptCache().remove('cfg'); }
 
@@ -75,7 +93,7 @@ var ACTION_ROLE = { sync:'player', pull:'player',
   presenceSync:'player', staffPickups:'staff', staffPickupHandle:'staff', adminImportPlaces:'admin',
   photoUpload:'player', staffSetAge:'staff', adminPhotos:'admin', adminPhotoPick:'admin',
   adminBanner:'admin', adminBannerStop:'admin', adminBanners:'admin',
-  chatSync:'player', flagPlace:'player', act:'player', ranking:'player', adminFlags:'admin', adminFlagResolve:'admin', worldPost:'player', worldGet:'player', worldThumb:'player', recoverPlayer:'player', adminChat:'admin', adminChatSetting:'admin', adminChatHide:'admin', adminSetAccess:'admin' };
+  chatSync:'player', flagPlace:'player', act:'player', ranking:'player', adminFlags:'admin', adminFlagResolve:'admin', worldPost:'player', worldGet:'player', worldThumb:'player', recoverPlayer:'player', adminChat:'admin', adminPickupPoints:'admin', adminChatSetting:'admin', adminChatHide:'admin', adminSetAccess:'admin' };
 
 function auth_(req, a){
   var need = ACTION_ROLE[a]; if(!need) throw new Error('unknown action');
@@ -484,6 +502,16 @@ var HANDLERS = {
       var pw = findRow_('Players','Code',r.PlayerCode);
       return {id:r.MsgId, code:r.PlayerCode, name:r.Name, text:r.Text, at:Number(r.At), hidden:String(r.Hidden)==='yes', access:pw?String(pw.Access||''):''}; });
     return {ok:true, enabled:bool_((findRow_('Config','Key','chat.enabled')||{}).Value), rows:rows};
+  },
+  adminPickupPoints: function(req){
+    if(Array.isArray(req.points)){
+      var list = req.points.slice(0,30).map(cleanPoint_).filter(function(p){ return p.lat!=null && p.lng!=null && (p.name || p.main); });
+      var seen = {}; list = list.filter(function(p){ if(seen[p.id]) return false; seen[p.id]=1; return true; });
+      var v = JSON.stringify(list), r = findRow_('Config','Key','pickup.points');
+      if(r) setCells_('Config', r._row, {Value:v}); else appendObj_('Config',{Key:'pickup.points',Value:v,'What it does':'Extra flyer pickup points. Edit in Admin > Pickup points, not here.'});
+      bust_();
+    }
+    return {ok:true, points:pickupPointsList_(false)};
   },
   adminChatSetting: function(req){
     var v = req.enabled===true ? 'TRUE' : 'FALSE', r = findRow_('Config','Key','chat.enabled');
