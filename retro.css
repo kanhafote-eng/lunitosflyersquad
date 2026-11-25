@@ -468,3 +468,7 @@ html[data-theme] .lunar-sheet .button.primary,html[data-theme] .more-grid .butto
 .mq-intro-end p{margin:0 0 4px;font:900 22px system-ui,sans-serif;color:#FFD21F;text-shadow:0 0 12px #000}
 .mq-intro-end .button{min-width:210px}
 .mq-intro-err{position:absolute;left:24px;right:24px;top:45%;text-align:center;color:#fff;background:rgba(18,12,58,.9);padding:14px;border-radius:14px}
+/* build 24: onboarding pages must scroll when the content is taller than the screen */
+.onboarding{display:flex!important;flex-direction:column;height:100vh;height:100dvh;min-height:0!important;overflow-x:hidden!important;overflow-y:auto!important;-webkit-overflow-scrolling:touch;overscroll-behavior-y:contain}
+.onboarding>.onboard-panel{margin:auto!important;flex:none}
+.onboarding>.onboard-panel{margin-top:auto!important;margin-bottom:auto!important}

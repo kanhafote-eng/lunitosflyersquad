@@ -1,4 +1,4 @@
-/* MondQuest · build 23: optional 8-second intro video. Never autoplays: it only starts when someone taps the button. */
+/* MondQuest · build 23: optional intro video. Never autoplays: it only starts when someone taps the button. */
 (function(){'use strict';
 const SRC='assets/intro.mp4',POSTER='assets/intro-poster.jpg';
 let ov=null,lastFocus=null;
@@ -27,8 +27,8 @@ document.addEventListener('click',e=>{const b=e.target.closest&&e.target.closest
 const _w=welcome;
 welcome=function(){const r=_w.apply(this,arguments);
   try{const p=document.querySelector('.onboard-panel');
-    if(p&&!p.querySelector('.mq-introbtn')){const b=document.createElement('button');b.type='button';b.className='mq-introbtn';b.setAttribute('data-mq-intro','');b.setAttribute('aria-label','Watch the 8-second intro video');
-      b.innerHTML=`<span class="mq-introbtn-img"><img src="${POSTER}" alt="" loading="lazy" width="54" height="96"><span class="mq-introbtn-play" aria-hidden="true">▶</span></span><span class="mq-introbtn-txt"><b>Watch the 8-second intro</b><small>See what MondQuest is about</small></span>`;
+    if(p&&!p.querySelector('.mq-introbtn')){const b=document.createElement('button');b.type='button';b.className='mq-introbtn';b.setAttribute('data-mq-intro','');b.setAttribute('aria-label','Watch the intro video');
+      b.innerHTML=`<span class="mq-introbtn-img"><img src="${POSTER}" alt="" loading="lazy" width="54" height="96"><span class="mq-introbtn-play" aria-hidden="true">▶</span></span><span class="mq-introbtn-txt"><b>Watch intro</b><small>See what MondQuest is about</small></span>`;
       const crew=p.querySelector('.mq-crew'),em=p.querySelector('.onboard-emblem');(crew||em||p.firstChild).insertAdjacentElement(crew||em?'afterend':'beforebegin',b)}}catch(e){}
   return r};
 window.mqIntro={open,close};
