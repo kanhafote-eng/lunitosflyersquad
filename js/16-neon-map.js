@@ -78,14 +78,14 @@ function build(base){
    {id:'label-place',type:'symbol',source:src,'source-layer':'place',filter:cls('city','town','island'),layout:{'text-field':['coalesce',['get','name:latin'],['get','name']],'text-font':bold,'text-size':z([4,11,10,17,14,22]),'text-max-width':8},paint:{'text-color':P.label,'text-halo-color':P.halo,'text-halo-width':2.2,'text-halo-blur':.5}}
   ].filter(Boolean);
   // ---- detail: shops, landmarks, park names, house numbers (shown from street-level zoom) ----
-  const IC={food:['🍴','#FFB347'],cafe:['☕','#FFD21F'],bar:['🍺','#FF4FA3'],shop:['🛍️','#35E6FF'],bakery:['🥖','#35E6FF'],health:['✚','#6EE7A8'],civic:['🏛️','#CFC2FF'],police:['🛡️','#CFC2FF'],fire:['🚒','#FF8A65'],post:['✉️','#CFC2FF'],library:['📚','#9A6BFF'],museum:['🖼️','#FF4FA3'],theatre:['🎭','#FF4FA3'],cinema:['🎬','#FF4FA3'],star:['⭐','#FFD21F'],school:['🎒','#9A6BFF'],college:['🎓','#9A6BFF'],worship:['⛪','#CFC2FF'],sport:['🏟️','#6EE7A8'],hotel:['🛏️','#CFC2FF'],train:['🚆','#35E6FF'],bus:['🚌','#35E6FF'],bank:['🏦','#CFC2FF']};
+  const IC={food:['🍴','#FFB347'],cafe:['☕','#FFD21F'],bar:['🍺','#FF4FA3'],shop:['🛍️','#35E6FF'],bakery:['🥖','#35E6FF'],health:['✚','#6EE7A8'],civic:['🏛️','#CFC2FF'],police:['🛡️','#CFC2FF'],fire:['🚒','#FF8A65'],post:['✉️','#CFC2FF'],library:['📚','#9A6BFF'],museum:['🖼️','#FF4FA3'],theatre:['🎭','#FF4FA3'],cinema:['🎬','#FF4FA3'],star:['⭐','#FFD21F'],school:['🎒','#9A6BFF'],college:['🎓','#9A6BFF'],worship:['⛪','#CFC2FF'],sport:['🏟️','#6EE7A8'],hotel:['🛏️','#CFC2FF'],train:['🚆','#35E6FF'],bus:['🚌','#35E6FF'],bank:['🏦','#CFC2FF'],u:['U','#4F8BFF'],s:['S','#6EE7A8']};
   const CLS={restaurant:'food',fast_food:'food',food_court:'food',ice_cream:'food',cafe:'cafe',bar:'bar',pub:'bar',beer:'bar',biergarten:'bar',nightclub:'bar',
     shop:'shop',grocery:'shop',clothing_store:'shop',department_store:'shop',mall:'shop',jewelry:'shop',books:'shop',bicycle:'shop',florist:'shop',hairdresser:'shop',beauty:'shop',laundry:'shop',optician:'shop',toys:'shop',gift:'shop',electronics:'shop',
     pharmacy:'health',doctors:'health',dentist:'health',veterinary:'health',hospital:'health',clinic:'health',
     town_hall:'civic',courthouse:'civic',embassy:'civic',police:'police',fire_station:'fire',post:'post',library:'library',museum:'museum',theatre:'theatre',cinema:'cinema',art_gallery:'museum',
     attraction:'star',monument:'star',zoo:'star',school:'school',kindergarten:'school',college:'college',university:'college',place_of_worship:'worship',
-    stadium:'sport',swimming:'sport',fitness_centre:'sport',lodging:'hotel',railway:'train',bus:'bus',bank:'bank'};
-  const LAND=['town_hall','courthouse','embassy','police','fire_station','post','library','museum','theatre','cinema','art_gallery','attraction','monument','zoo','school','college','university','place_of_worship','hospital','stadium','railway'];
+    stadium:'sport',swimming:'sport',fitness_centre:'sport',lodging:'hotel',bus:'bus',bank:'bank'};
+  const LAND=['town_hall','courthouse','embassy','police','fire_station','post','library','museum','theatre','cinema','art_gallery','attraction','monument','zoo','school','college','university','place_of_worship','hospital','stadium'];
   const REG=Object.keys(CLS).filter(c=>!LAND.includes(c));
   const iconExpr=['case',['==',['get','subclass'],'bakery'],'mq-bakery',['match',['get','class'],...Object.keys(CLS).flatMap(c=>[c,'mq-'+CLS[c]]),'']];
   const nm=['coalesce',['get','name:latin'],['get','name']];
@@ -98,7 +98,16 @@ function build(base){
    {id:'detail-poi',type:'symbol',source:src,'source-layer':'poi',minzoom:15,filter:['all',cls(...REG),rankOk],layout:{'icon-image':iconExpr,'icon-size':z([15,.5,18,.8]),'icon-padding':5,'symbol-sort-key':['coalesce',['get','rank'],99],'text-field':['step',['zoom'],'',16.5,nm],'text-font':reg,'text-size':10.5,'text-offset':[0,1.15],'text-anchor':'top','text-max-width':7,'text-optional':true},paint:txt(P.labelSoft)},
    {id:'detail-landmark',type:'symbol',source:src,'source-layer':'poi',minzoom:14,filter:cls(...LAND),layout:{'icon-image':iconExpr,'icon-size':z([14,.62,18,1]),'icon-padding':6,'symbol-sort-key':['coalesce',['get','rank'],99],'text-field':['step',['zoom'],'',15.3,nm],'text-font':bold,'text-size':11.5,'text-offset':[0,1.25],'text-anchor':'top','text-max-width':8,'text-optional':true},paint:txt(P.label)}
   ];
+
+  // ---- U-Bahn / S-Bahn stations (always on, independent from the shops switch) ----
+  const NET=['downcase',['coalesce',['to-string',['get','network']],'']];
+  const isU=['any',['==',['get','subclass'],'subway'],['in','u-bahn',NET],['in','ubahn',NET],['in','metro',NET]];
+  const isS=['in','s-bahn',NET];
+  const TRANSIT=[{id:'transit-station',type:'symbol',source:src,'source-layer':'poi',minzoom:12.5,filter:['all',['==',['get','class'],'railway'],['in',['get','subclass'],['literal',['station','subway','halt']]]],
+    layout:{'icon-image':['case',isU,'mq-u',isS,'mq-s','mq-train'],'icon-size':z([12.5,.7,16,1,18,1.2]),'icon-padding':4,'symbol-sort-key':['coalesce',['get','rank'],99],
+      'text-field':['step',['zoom'],'',13.8,nm],'text-font':bold,'text-size':z([14,10.5,17,13]),'text-offset':[0,1.2],'text-anchor':'top','text-max-width':7,'text-optional':true},paint:txt(P.label)}];
   L.splice(L.findIndex(l=>l.id==='label-road'),0,...DETAIL);
+  L.splice(L.findIndex(l=>l.id==='label-road'),0,...TRANSIT);
   window.mqNeonIcons=IC;
   return {version:8,name:'MondQuest Neon',sources:srcs,glyphs:base.glyphs||OFM_FALLBACK.glyphs,layers:L};
 }
@@ -124,6 +133,10 @@ function badge(id){
   const S=3,N=26*S,c=document.createElement('canvas');c.width=c.height=N;const g=c.getContext('2d');
   g.beginPath();g.arc(N/2,N/2,N/2-2*S,0,Math.PI*2);g.fillStyle='rgba(18,12,58,.94)';g.fill();
   g.lineWidth=1.6*S;g.strokeStyle=d[1];g.shadowColor=d[1];g.shadowBlur=3*S;g.stroke();g.shadowBlur=0;
+  if(key==='u'||key==='s'){g.clearRect(0,0,N,N);const c1=d[1],r=key==='u'?5*S:N/2;g.beginPath();
+    if(key==='u'){const m=2.5*S;g.roundRect?g.roundRect(m,m,N-2*m,N-2*m,r):g.rect(m,m,N-2*m,N-2*m)}else g.arc(N/2,N/2,N/2-2.5*S,0,Math.PI*2);
+    g.fillStyle='rgba(18,12,58,.96)';g.fill();g.lineWidth=2.4*S;g.strokeStyle=c1;g.shadowColor=c1;g.shadowBlur=3*S;g.stroke();g.shadowBlur=0;
+    g.font=`900 ${15*S}px system-ui,Arial,sans-serif`;g.textAlign='center';g.textBaseline='middle';g.fillStyle='#fff';g.fillText(d[0],N/2,N/2+S*.5);return g.getImageData(0,0,N,N)}
   g.font=`${13*S}px "Apple Color Emoji","Noto Color Emoji","Segoe UI Emoji","Twemoji Mozilla",sans-serif`;g.textAlign='center';g.textBaseline='middle';g.fillStyle=d[1];
   g.fillText(d[0],N/2,N/2+S*.6);
   return g.getImageData(0,0,N,N)}
