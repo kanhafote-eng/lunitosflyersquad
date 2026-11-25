@@ -451,3 +451,20 @@ html[data-theme] .lunar-sheet .button.primary,html[data-theme] .more-grid .butto
 @media (prefers-reduced-motion:reduce){.mq-crew-l{animation:none}}
 .mq-backbar{position:fixed!important;left:14px;bottom:calc(16px + env(safe-area-inset-bottom));z-index:850;padding:0!important;pointer-events:none}
 .mq-backbar .mq-back{pointer-events:auto;box-shadow:0 4px 0 #1A1250,0 0 14px rgba(53,230,255,.55)}
+
+/* build 23: intro video */
+.mq-introbtn{display:flex;align-items:center;gap:12px;width:100%;margin:6px 0 10px;padding:8px 14px 8px 8px;border-radius:18px;border:2px solid #FFD21F;background:linear-gradient(135deg,rgba(255,210,31,.18),rgba(255,79,163,.16));color:#FFF5D9;text-align:left;cursor:pointer;box-shadow:0 0 16px rgba(255,210,31,.35);font:inherit}
+.mq-introbtn-img{position:relative;flex:none;width:54px;height:96px;border-radius:12px;overflow:hidden;background:#1A1250}
+.mq-introbtn-img img{width:100%;height:100%;object-fit:cover;display:block}
+.mq-introbtn-play{position:absolute;inset:0;display:grid;place-items:center;font-size:22px;color:#fff;background:rgba(18,12,58,.35);text-shadow:0 0 10px #000}
+.mq-introbtn-txt{display:flex;flex-direction:column;gap:3px}
+.mq-introbtn-txt b{font-size:17px;color:#FFD21F}
+.mq-introbtn-txt small{font-size:13px;opacity:.85}
+.mq-intro-ov{position:fixed;inset:0;z-index:2000;background:#05031a;display:flex;align-items:center;justify-content:center}
+.mq-intro-v{max-width:100%;max-height:100%;width:auto;height:100%;object-fit:contain;background:#05031a}
+.mq-intro-x{position:absolute;top:max(12px,env(safe-area-inset-top));right:14px;width:44px;height:44px;border-radius:50%;border:2px solid #FFF5D9;background:rgba(18,12,58,.8);color:#fff;font-size:20px;cursor:pointer}
+.mq-intro-end{position:absolute;left:0;right:0;bottom:12%;display:flex;flex-direction:column;align-items:center;gap:10px;padding:0 24px}
+.mq-intro-end[hidden],.mq-intro-err[hidden]{display:none}
+.mq-intro-end p{margin:0 0 4px;font:900 22px system-ui,sans-serif;color:#FFD21F;text-shadow:0 0 12px #000}
+.mq-intro-end .button{min-width:210px}
+.mq-intro-err{position:absolute;left:24px;right:24px;top:45%;text-align:center;color:#fff;background:rgba(18,12,58,.9);padding:14px;border-radius:14px}

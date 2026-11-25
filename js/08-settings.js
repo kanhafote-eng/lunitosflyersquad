@@ -70,7 +70,7 @@
       <h2>This device</h2>
       <p class="small">Signs you out here and clears what is saved in this browser. Anything already synced to Zirkus Mond stays safe.</p>
       <div class="actions"><button type="button" class="button danger" data-mq-act="reset">Sign out &amp; clear this device</button></div>
-      <div class="actions"><button type="button" class="button quiet" data-view="legal">Privacy &amp; fair play</button></div>
+      <div class="actions"><button type="button" class="button quiet" data-mq-intro>▶ Watch the intro</button> <button type="button" class="button quiet" data-view="legal">Privacy &amp; fair play</button></div>
       <p class="small set-about">MondQuest · Flyer pickup: Zirkus Mond, Rudolfstraße 14c, Berlin</p>
     </section>`);
     try{refreshPresenceList()}catch(e){}
