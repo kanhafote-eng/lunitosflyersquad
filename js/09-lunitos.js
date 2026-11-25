@@ -127,7 +127,7 @@ const hhmm=ms=>{try{return new Date(ms).toLocaleTimeString('en-GB',{hour:'2-digi
 function list(){
   const l=msgs.filter(m=>m.me||!muted.includes(m.pid));
   if(!l.length)return '<p class="small mq9-empty">Quiet on the moon right now. Say hi! 👋</p>';
-  return l.map(m=>`<article class="mq9-msg ${m.me?'me':''}"><span class="mq9-av">${courierSvg({...CONFIG.look.defaults,...(m.look||{})})}</span><div><b>${E(m.name)}</b> <small>${hhmm(m.at)}</small><p>${E(m.text)}</p></div>${m.me?'':`<button type="button" class="mq9-mute" data-mq9="mute" data-pid="${E(m.pid)}" aria-label="Hide messages from ${E(m.name)}" title="Hide messages from ${E(m.name)}">🔇</button>`}</article>`).join('')}
+  return l.map(m=>`<article class="mq9-msg ${m.me?'me':''}${m.pend?' pend':''}"><span class="mq9-av">${courierSvg({...CONFIG.look.defaults,...(m.look||{})})}</span><div><b>${E(m.name)}</b> <small>${hhmm(m.at)}</small><p>${E(m.text)}</p></div>${m.me?'':`<button type="button" class="mq9-mute" data-mq9="mute" data-pid="${E(m.pid)}" aria-label="Hide messages from ${E(m.name)}" title="Hide messages from ${E(m.name)}">🔇</button>`}</article>`).join('')}
 const readGet=()=>{try{return +localStorage.getItem('mq-chat-read')||0}catch(e){return 0}};
 const readSet=t=>{try{localStorage.setItem('mq-chat-read',String(t))}catch(e){}};
 function paintBadge(){const b=document.getElementById('mq9-chatbtn');if(!b)return;let k=b.querySelector('.mq9-badge');
@@ -146,11 +146,25 @@ function paint(){
   const f=document.getElementById('mq9-form');if(f)f.hidden=!canPost||!enabled;
   const off=document.getElementById('mq9-off');if(off)off.hidden=enabled;
   const np=document.getElementById('mq9-nopost');if(np)np.hidden=!(enabled&&!canPost)}
+let pollSeq=0,sending=0,pending=null;
 async function poll(text){
   if(!window.mqChat)return;
-  try{const r=await mqChat.sync(text);msgs=r.messages||[];canPost=r.canPost!==false;enabled=r.enabled!==false;if(Date.now()-noteAt>5000)note='';
-    if(!enabled){window.mqChatEnabled=false;closePanel();paintChatBtn();return}}catch(e){note=e.message||'Chat is taking a nap.';noteAt=Date.now()}
+  if(!text&&sending)return;
+  const my=++pollSeq;
+  try{const r=await mqChat.sync(text);if(my!==pollSeq&&!text)return;
+    msgs=r.messages||[];canPost=r.canPost!==false;enabled=r.enabled!==false;
+    if(text){note='';noteAt=0;pending=null}else if(!pending&&Date.now()-noteAt>8000)note='';
+    if(!enabled){window.mqChatEnabled=false;closePanel();paintChatBtn();return}}
+  catch(e){if(text){note=(e&&e.message&&!/Failed to fetch|Load failed|NetworkError/i.test(e.message))?e.message:"Your message didn't go through. Check your connection and tap Send again.";noteAt=Date.now()+60000;
+      const i=document.querySelector('#mq9-form input');if(i&&!i.value)i.value=text;pending=null;msgs=msgs.filter(m=>!m.pend)}
+    else if(!pending){note=e.message||'Chat is taking a nap.';noteAt=Date.now()}}
   markRead();paint()}
+async function sendMsg(text){
+  if(sending)return;sending=1;pending={me:true,pid:'me',name:(state.user&&state.user.name)||'Me',look:{},text,at:Date.now(),pend:true};
+  const l=document.getElementById('mq9-chatlist');
+  if(l){msgs=msgs.concat([pending]);paint();l.scrollTop=l.scrollHeight}
+  const btn=document.querySelector('#mq9-form button');if(btn)btn.disabled=true;
+  try{await poll(text)}finally{sending=0;const b2=document.querySelector('#mq9-form button');if(b2)b2.disabled=false}}
 function panelHtml(){
   return `<div class="mq9-panel-head"><b>💬 Moon chat</b><button type="button" data-mq9="chat-x" aria-label="Close chat">×</button></div><p class="mq9-rules">One open channel for all Lunitos. No private messages. Be kind and don't share personal details.</p><p id="mq9-off" class="mq9-off" hidden>Moon chat is resting right now. 🌙</p><div id="mq9-chatlist" class="mq9-chatlist" aria-live="polite">${list()}</div><p id="mq9-chaterr" class="small mq9-err"></p><p id="mq9-nopost" class="small" hidden>You can read the chat, but posting is switched off for you right now.</p><form id="mq9-form" class="mq9-form" autocomplete="off"><input name="t" maxlength="140" placeholder="Say something nice…" aria-label="Your message"><button class="button primary" type="submit">Send</button></form>`}
 function openPanel(){
@@ -179,7 +193,7 @@ setInterval(()=>{if(!document.hidden&&window.mqSheet&&mqSheet.loadConfig)mqSheet
 document.addEventListener('submit',e=>{
   const f=e.target.closest('#mq9-form');if(!f)return;e.preventDefault();
   const i=f.elements.t,t=i.value.trim();if(!t)return;
-  i.value='';poll(t)});
+  if(sending)return;i.value='';sendMsg(t)});
 
 /* ---------- social links at the end of Cargo, Profile and News ---------- */
 const SOCIAL_VIEWS=['shop','courier','announcements'];
@@ -187,7 +201,7 @@ const _shell=shell;
 shell=function(){const r=_shell.apply(this,arguments);
   try{if(SOCIAL_VIEWS.includes(currentView)){const cards=document.querySelectorAll('.view section.card, .view > section');const last=cards[cards.length-1]||document.querySelector('.view');
     if(last&&!last.querySelector('.mq9-social')){last.insertAdjacentHTML('beforeend',mqSocialHtml())}}
-    if(currentView==='settings'){const c=document.querySelector('.view section.card, .view > section');if(c&&!c.querySelector('.mq9-build'))c.insertAdjacentHTML('beforeend','<p class="small mq9-build">MondQuest build 25 · 25 Nov 2026'+(window.mqEcon&&mqEcon.queue?(mqEcon.queue().length?' · '+mqEcon.queue().length+' action(s) waiting to sync':' · all saved'):'')+'</p>')}}catch(e){}
+    if(currentView==='settings'){const c=document.querySelector('.view section.card, .view > section');if(c&&!c.querySelector('.mq9-build'))c.insertAdjacentHTML('beforeend','<p class="small mq9-build">MondQuest build 26 · 25 Nov 2026'+(window.mqEcon&&mqEcon.queue?(mqEcon.queue().length?' · '+mqEcon.queue().length+' action(s) waiting to sync':' · all saved'):'')+'</p>')}}catch(e){}
   return r};
 
 document.addEventListener('click',e=>{

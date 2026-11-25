@@ -472,3 +472,4 @@ html[data-theme] .lunar-sheet .button.primary,html[data-theme] .more-grid .butto
 .onboarding{display:flex!important;flex-direction:column;height:100vh;height:100dvh;min-height:0!important;overflow-x:hidden!important;overflow-y:auto!important;-webkit-overflow-scrolling:touch;overscroll-behavior-y:contain}
 .onboarding>.onboard-panel{margin:auto!important;flex:none}
 .onboarding>.onboard-panel{margin-top:auto!important;margin-bottom:auto!important}
+.mq9-msg.pend{opacity:.55}.mq9-err{font-weight:700}
