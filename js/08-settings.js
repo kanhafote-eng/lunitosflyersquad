@@ -70,7 +70,7 @@
       <h2>This device</h2>
       <p class="small">Signs you out here and clears what is saved in this browser. Anything already synced to Zirkus Mond stays safe.</p>
       <div class="actions"><button type="button" class="button danger" data-mq-act="reset">Sign out &amp; clear this device</button></div>
-      <div class="actions"><button type="button" class="button quiet" data-mq-intro>▶ Watch the intro</button> <button type="button" class="button quiet" data-view="legal">Privacy &amp; fair play</button></div>
+      <div class="actions"><button type="button" class="button quiet" data-view="manual">📖 How to play</button> <button type="button" class="button quiet" data-mq-intro>▶ Watch the intro</button> <button type="button" class="button quiet" data-view="legal">Privacy &amp; fair play</button></div>
       <p class="small set-about">MondQuest · Flyer pickup: Zirkus Mond, Rudolfstraße 14c, Berlin</p>
     </section>`);
     try{refreshPresenceList()}catch(e){}
@@ -150,9 +150,9 @@
       <div class="actions"><button type="button" class="button quiet" data-action="location-on">Share my location</button><button type="button" class="button quiet" data-action="location-off">Stop sharing</button></div>`}
       <div class="actions"><button type="button" class="button quiet" data-mq-act="players-refresh">Refresh</button></div>
       ${mqAgeU16()?'':`<h2>Sharing location (${sharing.length})</h2>`}
-      ${mqAgeU16()?'':sharing.length?sharing.map(x=>`<div class="set-row"><div><b>${esc(x.name)}</b><small>Updated ${ago(x.updatedAt)} · approximate position</small></div><button type="button" class="button small" data-mq-focus="${x.lat},${x.lng}">Show on map</button></div>`).join(''):'<p class="small">Nobody is sharing their location right now.</p>'}
+      ${mqAgeU16()?'':sharing.length?sharing.map(x=>`<div class="set-row"><div><b>${esc(x.name)}</b><small>Updated ${ago(x.updatedAt)} · approximate position</small></div><span class="mq25-rowbtns"><button type="button" class="button small" data-mq25-prof="${esc(x.pid||'')}">Profile</button><button type="button" class="button small" data-mq-focus="${x.lat},${x.lng}">Show on map</button></span></div><div class="mq25-prof" data-for="${esc(x.pid||'')}" hidden></div>`).join(''):'<p class="small">Nobody is sharing their location right now.</p>'}
       <h2>${mqAgeU16()?'Online now':'Online, not sharing'} (${online.length})</h2>
-      ${online.length?online.map(x=>`<div class="set-row"><div><b>${esc(x.name)}</b><small>Online now</small></div></div>`).join(''):'<p class="small">No other players online.</p>'}
+      ${online.length?online.map(x=>`<div class="set-row"><div><b>${esc(x.name)}</b><small>Online now</small></div><button type="button" class="button small" data-mq25-prof="${esc(x.pid||'')}">Profile</button></div><div class="mq25-prof" data-for="${esc(x.pid||'')}" hidden></div>`).join(''):'<p class="small">No other players online.</p>'}
     </section>`);
     if(window.mqSheet&&Date.now()-lastFetch>8000){lastFetch=Date.now();window.mqSheet.presence()}
   };

@@ -473,3 +473,18 @@ html[data-theme] .lunar-sheet .button.primary,html[data-theme] .more-grid .butto
 .onboarding>.onboard-panel{margin:auto!important;flex:none}
 .onboarding>.onboard-panel{margin-top:auto!important;margin-bottom:auto!important}
 .mq9-msg.pend{opacity:.55}.mq9-err{font-weight:700}
+/* build 27 · new Moon menu */
+.mq25-menu{max-height:calc(100vh - 290px);max-height:calc(100dvh - 290px);min-height:200px;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;padding:2px 12px 10px;position:relative;z-index:3;scrollbar-width:none}
+.mq25-menu::-webkit-scrollbar{display:none}
+.mq25-h{margin:12px 2px 6px;font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:#ffd666;text-shadow:0 1px 4px #000,0 0 8px rgba(0,0,0,.8)}
+.mq25-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.mq25-menu .mq25-tile{display:flex;align-items:center;gap:9px;text-align:left;min-height:56px;padding:6px 10px;width:100%}
+.mq25-wide{margin-top:2px}
+.mq25-ic{flex:0 0 auto;width:34px;height:34px;display:grid;place-items:center}
+.mq25-ic svg{width:32px;height:32px}
+.mq25-tx{display:flex;flex-direction:column;min-width:0;line-height:1.15}
+.mq25-tx b{font-size:14px}.mq25-tx small{font-size:11px;opacity:.8;margin-top:2px;overflow-wrap:anywhere}
+@media (max-width:340px){.mq25-grid{grid-template-columns:1fr}}
+.mq25-hint{margin:6px 0;padding:8px 10px;border-radius:12px;background:rgba(255,214,102,.16);border:1px solid rgba(255,214,102,.5)}
+.mq25-adv .actions{margin:6px 0}
+.mq25-prof{margin:2px 0 10px}.mq25-rowbtns{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}

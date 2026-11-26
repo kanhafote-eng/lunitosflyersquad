@@ -29,6 +29,12 @@ async function load(){if(loading||!window.mqPost||!state.user)return;loading=tru
   catch(e){err=navigator.onLine?'Could not load the ranking right now.':'You are offline. Showing the last ranking you saw.'}
   finally{loading=false;paint()}}
 ranking=function(){sel='';paint();load()};
+/* public profile of any courier (used by Online players): same card as the ranking, loaded on demand */
+window.mqPlayerProfile=async function(pid){
+  const find=()=>((data&&data.rows)||[]).find(r=>r.pid===pid);
+  let r=find();
+  if(!r&&window.mqPost&&state.user){try{const x=await mqPost({action:'ranking',player:{code:state.user.code,name:state.user.name}});if(x&&x.ok){data={rows:x.rows,me:x.me,pos:x.pos};try{localStorage.setItem(RK,JSON.stringify(data))}catch(e){}r=find()}}catch(e){}}
+  return r?detail(r):null};
 document.addEventListener('click',e=>{const r=e.target.closest&&e.target.closest('[data-mq14]');
   if(r){sel=sel===r.dataset.mq14?'':r.dataset.mq14;paint();return}
   if(e.target.closest&&e.target.closest('[data-mq14-refresh]'))load()});
