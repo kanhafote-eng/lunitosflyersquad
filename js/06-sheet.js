@@ -185,6 +185,9 @@ save=function(){const r=_save.apply(this,arguments);clearTimeout(t);t=setTimeout
 async function cycle(){await loadConfig();await sync();await pull();if(applied)refreshView()}
 cycle();
 document.addEventListener('visibilitychange',()=>{if(!document.hidden)cycle()});
-setInterval(()=>{if(!document.hidden){pull();sync()}},90000);
+setInterval(async()=>{if(document.hidden||!state.user)return;
+  const sig=()=>JSON.stringify((state.places||[]).map(p=>[p.id,p.lat,p.lng,!!p.retired,p.name]));const before=sig();
+  try{await loadConfig();await sync();await pull()}catch(e){}
+  if(sig()!==before){try{refreshMarkers()}catch(e){}if(currentView==='places')refreshView()}},60000);
 window.mqSheet={sync,pull,loadConfig,presence};
 })();

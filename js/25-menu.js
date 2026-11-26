@@ -1,7 +1,6 @@
 /* MondQuest · the Moon menu, rebuilt: every button says what you DO. Three groups, glass look, one tap to the action. */
 (function(){'use strict';
 const T=(ic,title,sub,attrs)=>({ic,title,sub,attrs});
-const MISSIONS=T('star','Missions','Today’s goals and rewards','data-view="missions"');
 const GROUPS=[
  ['Play',[
   T('tent','Pick up Material','Grab your material','data-view="pickup"'),
@@ -11,6 +10,7 @@ const GROUPS=[
   T('scope','Find a Sticker','Spotted one? Share it','data-action="mission" data-kind="spotted"'),
   T('pin','Add New Location','Suggest a new spot','data-action="mission" data-kind="discover"')]],
  ['Explore',[
+  T('star','Missions','Today’s goals and rewards','data-view="missions"'),
   T('globe','Places & Route','Stops &amp; adventures','data-view="places"'),
   T('trophy','Ranking','Top couriers','data-view="ranking"'),
   T('user','Online Players','See who’s out now','data-view="players"')]],
@@ -19,12 +19,13 @@ const GROUPS=[
   T('mask','Profile','Your Lunito &amp; stats','data-view="courier"'),
   T('gear','Settings','Map, privacy, how to play','data-view="settings"')]]];
 const tile=t=>`<button type="button" class="button mq25-tile" ${t.attrs}><span class="mq25-ic">${window.mqIcon?mqIcon(t.ic,'menu-ic'):''}</span><span class="mq25-tx"><b>${t.title}</b><small>${t.sub}</small></span></button>`;
-function html(){return `<div class="mq25-menu" role="menu" aria-label="Moon menu"><button type="button" class="button mq25-tile mq25-wide" ${MISSIONS.attrs}><span class="mq25-ic">${window.mqIcon?mqIcon(MISSIONS.ic,'menu-ic'):''}</span><span class="mq25-tx"><b>${MISSIONS.title}</b><small>${MISSIONS.sub}</small></span></button>`
-  +GROUPS.map(([h,l])=>`<h3 class="mq25-h">${h}</h3><div class="mq25-grid">${l.map(tile).join('')}</div>`).join('')+'</div>'}
+function html(){const n=GROUPS.length;return `<div class="mq25-menu" role="menu" aria-label="Moon menu"><div class="mq12-pager">`
+  +GROUPS.map(([h,l])=>`<div class="mq12-page"><h3 class="mq25-h">${h}</h3>${l.map(tile).join('')}</div>`).join('')+'</div>'
+  +`<div class="mq12-dots">${GROUPS.map((g,i)=>`<button type="button" class="mq12-dot${i?'':' on'}" data-mq12="${i}" aria-label="${g[0]} (page ${i+1} of ${n})"></button>`).join('')}</div></div>`}
 const _more=more;
 more=function(){const r=_more.apply(this,arguments);
   try{const sc=document.querySelector('.lunar-sheet-scroll');if(sc){sc.innerHTML=html();
-      setTimeout(()=>{try{document.querySelectorAll('.mq25-menu .menu-ic').forEach(()=>{})}catch(e){}},0)}}catch(e){}
+      const pg=sc.querySelector('.mq12-pager'),ds=sc.querySelectorAll('.mq12-dot');if(pg)pg.addEventListener('scroll',()=>{const i=Math.round(pg.scrollLeft/Math.max(1,pg.clientWidth));ds.forEach((d,k)=>d.classList.toggle('on',k===i))},{passive:true})}}catch(e){}
   return r};
 /* the "choose a place" hint + Adventures live on Places & Route */
 const _pl=placesScreen;
