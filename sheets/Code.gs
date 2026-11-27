@@ -28,9 +28,11 @@ function safeCell_(v){ // block formula injection
 
 function publicConfig_(){
   var cache = CacheService.getScriptCache(), c = cache.get('cfg');
-  if(c) return JSON.parse(c);
+  // cfgv lives in the shared store, so a change made on one server instance clears the cached copy on every instance
+  var ver = String(cache.get('cfgv')||'0');
+  if(c){ try{ var hit = JSON.parse(c); if(hit._v===ver) return hit; }catch(e){} }
   schema_();
-  var o = {ok:true, updatedAt:now_()};
+  var o = {ok:true, updatedAt:now_(), _v:ver};
   TABS_PUBLIC.forEach(function(n){ o[n.toLowerCase()] = strip_(table_(n).rows); });
   o.rewards = o.rewards.filter(function(r){return bool_(r.active);});
   o.cosmetics = o.cosmetics.filter(function(r){return bool_(r.active);});
@@ -60,7 +62,7 @@ function pickupPointsList_(onlyActive){
   arr = arr.slice(0,30).map(cleanPoint_).filter(function(p){ return p.lat!=null && p.lng!=null && (p.name || p.main); });
   return onlyActive ? arr.filter(function(p){ return p.active; }) : arr;
 }
-function bust_(){ CacheService.getScriptCache().remove('cfg'); }
+function bust_(){ var c = CacheService.getScriptCache(); c.remove('cfg'); c.put('cfgv', String(Date.now()), 86400); }
 
 function doGet(e){
   try{
@@ -90,7 +92,7 @@ function doPost(e){
 var ACTION_ROLE = { sync:'player', pull:'player',
   staffLookup:'staff', staffGrant:'staff', staffRedemptions:'staff', staffHandle:'staff',
   adminGet:'admin', adminSave:'admin', adminPlayers:'admin', adminSetTrust:'admin', adminReviewPlace:'admin', adminGrant:'admin', adminLog:'admin', adminStats:'admin', adminPlayerSave:'admin', adminPlayerDelete:'admin', adminPhotoDelete:'admin',
-  presenceSync:'player', staffPickups:'staff', staffPickupHandle:'staff', adminImportPlaces:'admin',
+  presenceSync:'player', placeEdit:'player', staffPickups:'staff', staffPickupHandle:'staff', adminImportPlaces:'admin',
   photoUpload:'player', staffSetAge:'staff', adminPhotos:'admin', adminPhotoPick:'admin',
   adminBanner:'admin', adminBannerStop:'admin', adminBanners:'admin',
   chatSync:'player', flagPlace:'player', act:'player', ranking:'player', adminFlags:'admin', adminFlagResolve:'admin', worldPost:'player', worldGet:'player', worldThumb:'player', recoverPlayer:'player', adminChat:'admin', adminPickupPoints:'admin', adminChatSetting:'admin', adminChatHide:'admin', adminSetAccess:'admin' };
@@ -554,6 +556,17 @@ var HANDLERS = {
     var r = findRow_('Photos','PhotoId',req.id); if(!r) throw new Error('Photo not found');
     setCells_('Photos', r._row, {Pick: req.pick===true ? 'yes' : ''});
     return {ok:true};
+  },
+  placeEdit: function(req){
+    // the player who added a place may fix its details; everybody gets the change on their next refresh
+    var p = req.player||{}; if(!validCode_(p.code)) throw new Error('bad player code');
+    var pl = req.place||{}, id = clean_(pl.id,40), r = id ? findRow_('Places','id',id) : null;
+    if(!r) return {ok:false, error:'Place not found'};
+    if(String(r.addedBy||'').indexOf('('+p.code+')')<0) return {ok:false, error:'Only the player who added this place can edit it'};
+    var lat=Number(pl.lat), lng=Number(pl.lng); if(!isFinite(lat)||!isFinite(lng)||Math.abs(lat)>90||Math.abs(lng)>180) throw new Error('bad position');
+    var nm = clean_(pl.name,60); if(!nm) throw new Error('name needed');
+    setCells_('Places', r._row, {name:nm,type:clean_(pl.type,20),posterSize:clean_(pl.posterSize,10),address:clean_(pl.address,120),lat:lat,lng:lng,spot:clean_(pl.spot,80),notes:clean_(pl.notes,200),updatedAt:now_()});
+    bust_(); return {ok:true};
   },
   presenceSync: function(req){
     var p = req.player||{}; if(!validCode_(p.code)) throw new Error('bad player code');
