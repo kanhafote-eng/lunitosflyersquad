@@ -29,8 +29,8 @@ function applyRemote(r){
       g.cost=num(x.cost);g.rank=num(x.rank)||g.rank;g.min={};['comet','meteor','nebula','void','rings'].forEach(k=>{if(num(x[k])>0)g.min[k]=num(x[k])})}}
   if(r.places){const sy=S();const remote=new Map(r.places.map(p=>[String(p.id),p]));
     r.places.forEach(p=>{const id=String(p.id);let l=state.places.find(x=>x.id===id);
-      const f={name:String(p.name),type:String(p.type),posterSize:String(p.posterSize||'A4'),address:String(p.address||''),lat:num(p.lat),lng:num(p.lng),spot:String(p.spot||''),notes:String(p.notes||''),retired:false,remote:true,verified:p.verified!==false};
-      if(l)Object.assign(l,f);else state.places.push({id,discoverer:String(p.addedBy||'Zirkus Mond'),createdAt:Date.now(),closed:false,ratings:{},status:'needs',lastUpdated:Date.now(),...f})});
+      const f={name:String(p.name),type:String(p.type),posterSize:String(p.posterSize||'A4'),address:String(p.address||''),lat:num(p.lat),lng:num(p.lng),spot:String(p.spot||''),notes:String(p.notes||''),retired:false,remote:true,verified:p.verified!==false,serverAt:Date.parse(p.updatedAt)||0};
+      if(l)Object.assign(l,f);else state.places.push({id,discoverer:String(p.addedBy||'Zirkus Mond'),createdAt:Date.parse(p.updatedAt)||Date.now(),closed:false,ratings:{},status:'needs',lastUpdated:Date.now(),...f})});
     state.places.forEach(p=>{if((p.remote||/^seed-/.test(p.id))&&!remote.has(p.id)){p.retired=true}})}
   if(r.news){state.newsPages=[...r.news.map(n=>({id:'sheet-'+n.id,title:String(n.title),body:String(n.body),type:String(n.type||'new flyers'),image:n.image||svgData('#f6bd4e'),sheet:true})),...state.newsPages.filter(n=>!n.demo&&!n.sheet)];state.newsSeeded=true}
   applied=true;
@@ -140,7 +140,7 @@ stopLocationShare=function(){_stop();presence({stop:true})};
 setInterval(()=>{if(document.hidden||!state.user)return;
   const mine=livePresence().find(x=>!x.remote&&String(x.code)===String(state.user.code));
   if(mine&&navigator.geolocation)navigator.geolocation.getCurrentPosition(p=>{try{const e={...mine,lat:p.coords.latitude,lng:p.coords.longitude,updatedAt:Date.now()};localStorage.setItem(presenceKey(mine.code),JSON.stringify(e))}catch(x){}presence({lat:p.coords.latitude,lng:p.coords.longitude})},()=>presence(),{timeout:8000,maximumAge:60000});
-  else presence()},60000);
+  else presence()},30000);
 setTimeout(presence,2500);
 
 
@@ -188,6 +188,6 @@ document.addEventListener('visibilitychange',()=>{if(!document.hidden)cycle()});
 setInterval(async()=>{if(document.hidden||!state.user)return;
   const sig=()=>JSON.stringify((state.places||[]).map(p=>[p.id,p.lat,p.lng,!!p.retired,p.name]));const before=sig();
   try{await loadConfig();await sync();await pull()}catch(e){}
-  if(sig()!==before){try{refreshMarkers()}catch(e){}if(currentView==='places')refreshView()}},60000);
+  if(sig()!==before){try{refreshMarkers()}catch(e){}if(currentView==='places')refreshView()}},30000);
 window.mqSheet={sync,pull,loadConfig,presence};
 })();

@@ -81,7 +81,7 @@ new MutationObserver(()=>{document.querySelectorAll('img[data-wid]:not([data-wl]
 const _save=save;let t=null;
 save=function(){const r=_save.apply(this,arguments);clearTimeout(t);t=setTimeout(push,2500);return r};
 setTimeout(()=>{push();pull()},3500);
-setInterval(()=>{if(!document.hidden){push();pull()}},30000);
+setInterval(()=>{if(!document.hidden){push();pull()}},15000);
 document.addEventListener('visibilitychange',()=>{if(!document.hidden){push();pull()}});
 window.mqWorld={push,pull,redraw};
 })();

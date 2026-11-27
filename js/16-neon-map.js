@@ -140,13 +140,19 @@ function badge(id){
   g.font=`${13*S}px "Apple Color Emoji","Noto Color Emoji","Segoe UI Emoji","Twemoji Mozilla",sans-serif`;g.textAlign='center';g.textBaseline='middle';g.fillStyle=d[1];
   g.fillText(d[0],N/2,N/2+S*.6);
   return g.getImageData(0,0,N,N)}
-let brokenAt=0;
-window.mqNeonWanted=()=>C.neonMap!==false&&(Date.now()-brokenAt>(window.__mqHoldMs||60000))&&glOk();
+const HOLD=25000;let brokenAt=0;
+const MLOG=window.__mqMapLog=window.__mqMapLog||[];
+function mlog(t){try{MLOG.push(new Date().toTimeString().slice(0,8)+' '+t);if(MLOG.length>30)MLOG.shift();console.warn('[MondQuest] '+t)}catch(e){}}
+window.mqMapStatus=()=>{let m=leafletInstance;return{neon:!!(m&&m.getContainer().classList.contains('mq-neon')),raster:!!(m&&m._mqRasterOn),level:window.__mqNeonLevel,lite:!!window.__mqLite,log:MLOG.slice(),ua:navigator.userAgent}};
+window.mqMapRetry=()=>{try{const m=leafletInstance;if(!m)return;brokenAt=0;window.__mqLite=0;m._mqRetries=0;m._mqNetRetry=0;clearTimeout(m._mqRetryT);m._mqRetryT=0;m._mqNeon=0;
+  try{if(window.__mqNeonLayer)m.removeLayer(window.__mqNeonLayer)}catch(e){}
+  mlog('manual retry');upgrade(m,0)}catch(e){}};
+window.mqNeonWanted=()=>C.neonMap!==false&&(Date.now()-brokenAt>(window.__mqHoldMs||HOLD))&&glOk();
 /* last resort: the standard map. A later retry puts the neon map back when the network recovers. */
-function fail(map,soft,why){try{console.warn('[MondQuest] neon map unavailable, using the standard map:',why||'unknown')}catch(e){}
+function fail(map,soft,why){mlog('neon map unavailable, standard map instead: '+(why||'unknown'));
   if(!soft)brokenAt=Date.now();
   try{if(map._mqRaster&&!map._mqRasterOn&&map===leafletInstance&&document.body.contains(map.getContainer())){map._mqRasterOn=1;map._mqRaster()}}catch(e){}
-  try{map._mqRetries=(map._mqRetries||0)+1;if(map._mqRetries<=6&&!map._mqRetryT){map._mqRetryT=setTimeout(()=>{map._mqRetryT=0;try{if(map===leafletInstance&&document.body.contains(map.getContainer())&&!map._mqNeon&&window.mqNeonWanted()){map._mqGone=0;upgrade(map,0)}}catch(e){}},(window.__mqHoldMs||60000)*Math.min(map._mqRetries,4)+5000)}}catch(e){}}
+  try{map._mqRetries=(map._mqRetries||0)+1;if(map._mqRetries<=6&&!map._mqRetryT){map._mqRetryT=setTimeout(()=>{map._mqRetryT=0;try{if(map===leafletInstance&&document.body.contains(map.getContainer())&&!map._mqNeon&&window.mqNeonWanted()){map._mqGone=0;upgrade(map,0)}}catch(e){}},(window.__mqHoldMs||HOLD)*Math.min(map._mqRetries,4)+5000)}}catch(e){}}
 function mkStyle(st,level){
   const o=JSON.parse(JSON.stringify(st));
   if(level>=1)o.layers=o.layers.filter(l=>!/^(detail|transit)-/.test(l.id));
@@ -171,24 +177,25 @@ function upgrade(map,level){
     mm.on('styleimagemissing',e=>{try{if(/^mq-/.test(e.id)&&!mm.hasImage(e.id)){const im=badge(e.id);if(im)mm.addImage(e.id,im,{pixelRatio:3})}}catch(x){}});
     mm.on('data',e=>{try{if(e&&e.dataType==='source'&&e.sourceDataType==='content'&&(e.tile||(e.sourceId&&mm.isSourceLoaded(e.sourceId))))S.tile=true}catch(x){}});
     mm.on('error',e=>{let m='';try{m=String(e&&e.error&&e.error.message||e)}catch(x){}
-      try{console.warn('[MondQuest] map error:',m)}catch(x){}
+      mlog('map error: '+m.slice(0,160));
       if(/layers\.|layers\[|expression|Expected|Invalid|validat|not allowed|unknown property/i.test(m)&&!/Failed to fetch|NetworkError|Load failed/i.test(m)){if(!S.tile)S.styleErr=true}
       else if(/Failed to fetch|NetworkError|Load failed|AJAXError|Failed to load|404|403|50\d|timed out|Unauthorized/i.test(m)||(e&&e.sourceId))S.errs++});
     const drawn=()=>{try{const ids=mm.getStyle().layers.filter(l=>l.type!=='background'&&l.source&&!/^detail-|^transit-/.test(l.id)).map(l=>l.id);return mm.queryRenderedFeatures({layers:ids}).length}catch(e){return 0}};
     const alive=()=>!S.over&&!map._mqGone&&document.body.contains(map.getContainer());
     const drop=(why,toRaster)=>{stop();try{map.removeLayer(layer)}catch(e){}map._mqNeon=0;
-      if(!toRaster&&level<1){console.warn('[MondQuest] neon map: simpler style because',why);return upgrade(map,1)}
-      if(toRaster&&!map._mqNetRetry&&!map._mqGone&&document.body.contains(map.getContainer())){map._mqNetRetry=1;console.warn('[MondQuest] neon map: network trouble ('+why+'), trying once more');return setTimeout(()=>{try{if(!map._mqNeon&&document.body.contains(map.getContainer()))upgrade(map,level)}catch(x){}},2500)}
+      if(!toRaster&&level<1){mlog('simpler style because '+why);return upgrade(map,1)}
+      if(toRaster&&!map._mqNetRetry&&!map._mqGone&&document.body.contains(map.getContainer())){map._mqNetRetry=1;mlog('network trouble ('+why+'), trying once more');return setTimeout(()=>{try{if(!map._mqNeon&&document.body.contains(map.getContainer()))upgrade(map,level)}catch(x){}},2500)}
       fail(map,false,why)};
-    const good=()=>{if(S.done)return;S.done=true;map._mqRasterOn=0;
+    const good=()=>{if(S.done)return;S.done=true;map._mqRasterOn=0;mlog('neon map ready (level '+level+', '+Math.round((Date.now()-S.t0)/100)/10+' s)');
       map.eachLayer(l=>{if(l instanceof L.TileLayer&&l!==layer)map.removeLayer(l)});
       map.getContainer().classList.add('mq-neon');
       try{map.attributionControl.addAttribution(ATTR)}catch(e){}
       const w=document.getElementById('map-fallback');if(w)w.hidden=true;watch(Date.now(),S.errs,0)};
     const check=()=>{if(!alive())return;const age=Date.now()-S.t0;
       if(drawn()>0){S.tile=true;return good()}
-      if(S.styleErr&&!S.tile)return drop('style rejected',false);
+      if(S.styleErr&&!S.tile&&age>7000)return drop('style rejected',false);
       if(age>10000&&!S.tile&&S.errs>=3)return drop('map tiles unreachable',true);
+      if(age>12000&&S.tile&&!S.diag){S.diag=1;try{const sid=Object.keys(mm.getStyle().sources)[0];mlog('tiles arrived ('+mm.querySourceFeatures(sid).length+' features in source) but our layers draw '+drawn())}catch(x){}}
       if(age>30000)return drop(S.tile?'tiles arrived but nothing was drawn':'no tiles in 30 s',S.tile?false:true);
       S.timer=setTimeout(check,1000)};
     /* after the first good draw: if it goes blank while loading keeps failing, give the standard map a turn */
@@ -200,14 +207,19 @@ function upgrade(map,level){
     let lostT=0;const cv=mm.getCanvas();
     layer.on('remove',()=>{map._mqGone=1;stop()});
     cv.addEventListener('webglcontextlost',()=>{if(map._mqGone)return;clearTimeout(lostT);lostT=setTimeout(()=>{if(map._mqGone)return;stop();try{map.removeLayer(layer)}catch(e){}map._mqNeon=0;
-      if(!window.__mqLite){window.__mqLite=1;console.warn('[MondQuest] map context lost, retrying lighter');setTimeout(()=>{try{if(document.body.contains(map.getContainer()))upgrade(map,1)}catch(x){}},400)}else fail(map,true,'WebGL context lost twice')},12000)});
+      if(!window.__mqLite){window.__mqLite=1;mlog('map context lost, retrying lighter');setTimeout(()=>{try{if(document.body.contains(map.getContainer()))upgrade(map,1)}catch(x){}},400)}else fail(map,true,'WebGL context lost twice')},12000)});
     cv.addEventListener('webglcontextrestored',()=>{clearTimeout(lostT);try{mm.triggerRepaint()}catch(e){}});
     window.__mqNeonLayer=layer;window.__mqNeonLevel=level;
     S.timer=setTimeout(check,800);
   }).catch(e=>{map._mqNeon=0;fail(map,false,e&&e.message||String(e))})
 }
 const _il=initLeaflet;
-initLeaflet=function(){const r=_il.apply(this,arguments);try{window.__mqMap=leafletInstance;upgrade(leafletInstance)}catch(e){}return r};
+function kick(map){if(!map||map._mqNeon)return;
+  if(window.mqNeonWanted()){upgrade(map);return}
+  /* a recent failure on an earlier map blocks the first try: wait it out on THIS map, then try again */
+  if(C.neonMap!==false&&glOk()&&!map._mqKick){const wait=Math.max(1000,(window.__mqHoldMs||HOLD)-(Date.now()-brokenAt)+500);
+    map._mqKick=setTimeout(()=>{map._mqKick=0;try{if(map===leafletInstance&&document.body.contains(map.getContainer())&&!map._mqNeon&&!map.getContainer().classList.contains('mq-neon'))kick(map)}catch(e){}},wait)}}
+initLeaflet=function(){const r=_il.apply(this,arguments);try{window.__mqMap=leafletInstance;kick(leafletInstance)}catch(e){}return r};
 window.mqNeonStyle=build;window.mqNeonPalette=P;
 try{if(typeof leafletInstance!=='undefined'&&leafletInstance){window.__mqMap=leafletInstance;upgrade(leafletInstance)}}catch(e){}
 

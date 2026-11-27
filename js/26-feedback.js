@@ -41,3 +41,14 @@ processLog=function(form){const n0=(state.deliveries||[]).length;_pl(form);
     const what=d.kind==='poster'?'Poster up':d.kind==='stickers'?'Stickers placed':d.kind==='restock'?'Restocked':'Flyers dropped';
     if(p)mqCelebrate({kind:'drop',lat:p.lat,lng:p.lng,popup:false,msg:`✅ ${what} · ${p.name}${d.points?' · +'+d.points+' Mondinos':''}`})}};
 })();
+/* Settings → Map: honest status of the neon map + a retry button (also tells us why it failed) */
+(function(){const _s=window.settingsScreen;if(!_s)return;
+window.settingsScreen=function(){const r=_s.apply(this,arguments);try{fillMapStatus()}catch(e){}return r};
+function fillMapStatus(){const box=document.querySelector('[data-mq27-map]');if(!box||!window.mqMapStatus)return;
+  const st=mqMapStatus();const ok=st.neon?'🌙 Night map is on':(st.raster?'🗺️ Showing the standard map':'⏳ Night map is loading…');
+  box.innerHTML=`<div class="set-row"><div><b>${ok}</b><small>${st.neon?'Everything looks right.':'The night map could not start on this device or connection. It retries by itself.'}</small></div><span class="mq25-rowbtns"><button type="button" class="button small" data-mq27-retry>Try night map</button><button type="button" class="button small" data-mq27-copy>Copy details</button></span></div>`}
+document.addEventListener('click',e=>{const t=e.target.closest&&e.target.closest('[data-mq27-retry],[data-mq27-copy]');if(!t)return;
+  if(t.hasAttribute('data-mq27-retry')){mqMapRetry();t.textContent='Trying…';setTimeout(()=>{try{fillMapStatus()}catch(x){}},6000);return}
+  const st=mqMapStatus(),txt='MondQuest map · '+(st.neon?'neon':st.raster?'standard':'loading')+' · level '+st.level+' · lite '+st.lite+'\n'+st.log.join('\n')+'\n'+st.ua;
+  (navigator.clipboard&&navigator.clipboard.writeText?navigator.clipboard.writeText(txt):Promise.reject()).then(()=>{t.textContent='Copied ✓'},()=>{try{prompt('Copy these details',txt)}catch(x){}})},true);
+})();

@@ -201,7 +201,7 @@ const _shell=shell;
 shell=function(){const r=_shell.apply(this,arguments);
   try{if(SOCIAL_VIEWS.includes(currentView)){const cards=document.querySelectorAll('.view section.card, .view > section');const last=cards[cards.length-1]||document.querySelector('.view');
     if(last&&!last.querySelector('.mq9-social')){last.insertAdjacentHTML('beforeend',mqSocialHtml())}}
-    if(currentView==='settings'){const c=document.querySelector('.view section.card, .view > section');if(c&&!c.querySelector('.mq9-build'))c.insertAdjacentHTML('beforeend','<p class="small mq9-build">MondQuest build 28 · 25 Nov 2026'+(window.mqEcon&&mqEcon.queue?(mqEcon.queue().length?' · '+mqEcon.queue().length+' action(s) waiting to sync':' · all saved'):'')+'</p>')}}catch(e){}
+    if(currentView==='settings'){const c=document.querySelector('.view section.card, .view > section');if(c&&!c.querySelector('.mq9-build'))c.insertAdjacentHTML('beforeend','<p class="small mq9-build">MondQuest build 29 · 25 Nov 2026'+(window.mqEcon&&mqEcon.queue?(mqEcon.queue().length?' · '+mqEcon.queue().length+' action(s) waiting to sync':' · all saved'):'')+'</p>')}}catch(e){}
   return r};
 
 document.addEventListener('click',e=>{

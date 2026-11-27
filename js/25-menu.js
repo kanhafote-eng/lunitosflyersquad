@@ -13,7 +13,8 @@ const GROUPS=[
   T('star','Missions','Today’s goals and rewards','data-view="missions"'),
   T('globe','Places & Route','Stops &amp; adventures','data-view="places"'),
   T('trophy','Ranking','Top couriers','data-view="ranking"'),
-  T('user','Online Players','See who’s out now','data-view="players"')]],
+  T('user','Online Players','See who’s out now','data-view="players"'),
+  T('bell','Activity','What others did lately','data-view="announcements"')]],
  ['My stuff',[
   T('container','Cargo','Bag, outfits, gadgets','data-view="shop"'),
   T('mask','Profile','Your Lunito &amp; stats','data-view="courier"'),
