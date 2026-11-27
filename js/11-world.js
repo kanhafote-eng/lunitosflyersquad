@@ -35,7 +35,7 @@ async function pull(){
     if(s2===sig)return;sig=s2;
     const haveD=new Set((state.deliveries||[]).filter(d=>!d.remoteW).map(d=>String(d.id))),haveS=new Set((state.spotted||[]).filter(x=>!x.remoteW).map(x=>String(x.id)));
     state.deliveries=(state.deliveries||[]).filter(d=>!d.remoteW);
-    (r.drops||[]).forEach(d=>{if(haveD.has(d.id))return;const code=d.me?me:'r:'+d.pid;
+    (r.drops||[]).forEach(d=>{if(haveD.has(d.id)||haveD.has(String(d.id).replace(/-[fps]$/,'')))return;const code=d.me?me:'r:'+d.pid;
       state.deliveries.push({id:d.id,placeId:d.placeId,placeName:'',user:d.nick,userId:code,playerCode:code,avatarSnapshot:{code,name:d.nick},kind:'delivery',flyers:d.flyers,posters:d.posters,stickers:d.stickers,points:0,noPointRepeat:false,at:d.at,remoteW:true})});
     state.spotted=(state.spotted||[]).filter(x=>!x.remoteW);
     (r.sights||[]).forEach(x=>{if(haveS.has(x.id))return;const code=x.me?me:'r:'+x.pid;

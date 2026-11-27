@@ -43,7 +43,7 @@ function adopt(S){
 /* ---------- a rejected action is undone on the phone, with a friendly note ---------- */
 function undo(it,err){
   try{
-    if(it.t==='drop'){state.deliveries=(state.deliveries||[]).filter(d=>String(d.submitId||d.id)!==it.id&&String(d.id)!==it.id)}
+    if(it.t==='drop'){const bid=String(it.id).replace(/-[fps]$/,'');state.deliveries=(state.deliveries||[]).filter(d=>{const k=String(d.submitId||d.id).slice(0,36);return String(d.submitId||d.id)!==it.id&&String(d.id)!==it.id&&k!==bid})}
     if(it.t==='sight'){state.spotted=(state.spotted||[]).filter(x=>String(x.id)!==it.id)}
     if(it.t==='redeem'){const r=(state.redemptionRequests||[]).find(x=>x.id===it.id);if(r){r.status='rejected';r.resolvedAt=Date.now();const rw=(state.rewards||[]).find(x=>x.id===r.itemId);if(rw)rw.stock++}}
     toast(err||'That did not go through.');
@@ -76,7 +76,13 @@ if(typeof mqExpire==='function')mqExpire=function(){};   // expiry now happens o
 const _pl=processLog;
 processLog=function(form){const n=(state.deliveries||[]).length;let r;try{r=_pl.apply(this,arguments)}finally{
   const d=(state.deliveries||[]);if(d.length>n){const l=d[d.length-1];
-    if(l&&String(l.playerCode)===me()&&!l.remoteW)enq({t:'drop',id:String(l.submitId||l.id).slice(0,40),placeId:String(l.placeId),kind:l.kind,flyers:+l.flyers||0,posters:+l.posters||0,stickers:+l.stickers||0,photo:!!l.photo})}}
+    if(l&&String(l.playerCode)===me()&&!l.remoteW){const base=String(l.submitId||l.id).slice(0,36),pid=String(l.placeId);
+      if(l.kind==='poster'||l.kind==='stickers'||l.kind==='restock')enq({t:'drop',id:String(l.submitId||l.id).slice(0,40),placeId:pid,kind:l.kind,flyers:+l.flyers||0,posters:+l.posters||0,stickers:+l.stickers||0,photo:!!l.photo});
+      else{ /* the server records one material per action: a mixed delivery becomes one action per material, so posters and stickers reach the server (and every other player) too */
+        const f=+l.flyers||0,po=+l.posters||0,st=+l.stickers||0;
+        if(f)enq({t:'drop',id:base+'-f',placeId:pid,kind:'drop',flyers:f,posters:0,stickers:0,photo:false});
+        if(po)enq({t:'drop',id:base+'-p',placeId:pid,kind:'poster',flyers:0,posters:po,stickers:0,photo:!!l.photo});
+        if(st)enq({t:'drop',id:base+'-s',placeId:pid,kind:'stickers',flyers:0,posters:0,stickers:st,photo:false})}}}}
   return r};
 
 const _sp=createSpottedRecord;
