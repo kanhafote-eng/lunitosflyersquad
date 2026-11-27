@@ -503,3 +503,12 @@ html[data-theme] .lunar-sheet .button.primary,html[data-theme] .more-grid .butto
 .mq28-list li.new{border-color:rgba(255,214,102,.7);box-shadow:0 0 10px rgba(255,214,102,.25)}
 .mq28-list .mq28-tx{flex:1;display:block}.mq28-list small{display:block;opacity:.7}
 @media (prefers-reduced-motion:reduce){.mq28-note{transition:none}}
+/* build 30 · place finder + live status */
+.mq29-find{margin:10px 0 14px}.mq29-lab{display:block;font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:#ffd666;margin:0 0 5px}
+.mq29-box{display:flex;gap:6px;align-items:center}
+.mq29-box input{flex:1;min-width:0;font-size:16px;padding:11px 12px;border-radius:12px;border:1px solid rgba(255,255,255,.35);background:rgba(10,14,60,.55);color:#fff;-webkit-appearance:none;appearance:none}
+.mq29-box input::placeholder{color:rgba(255,255,255,.55)}
+.mq29-results{margin-top:8px;max-height:46vh;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain}
+.mq29-res{margin:0 0 6px}.mq29-hit{display:flex;align-items:center;gap:10px;width:100%;text-align:left;padding:9px 10px;border-radius:12px;color:#fff;font:inherit;background:rgba(34,47,128,.5);border:1px solid rgba(255,255,255,.2)}
+.mq29-t{flex:1;min-width:0;display:flex;flex-direction:column}.mq29-t small{opacity:.75;overflow-wrap:anywhere}.mq29-show{font-size:12px;color:#ffd666;font-weight:700}
+.mq29-none{padding:10px;border-radius:12px;background:rgba(255,214,102,.12);border:1px solid rgba(255,214,102,.4)}

@@ -55,5 +55,6 @@ function tick(){try{if(!state.user)return;
   showNext();paintBell()}catch(e){}}
 setTimeout(()=>{try{entries().filter(e=>e.at<START-90000).forEach(e=>toasted.add(e.id))}catch(x){}},0);
 setInterval(tick,3000);
+window.mqBanner=(icon,html)=>{queue.push({id:'b'+Math.random(),at:Date.now(),icon,html});showNext()};
 window.mqActivity={entries,unread:unreadFeed};
 })();

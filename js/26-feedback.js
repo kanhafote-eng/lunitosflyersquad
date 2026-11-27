@@ -16,12 +16,21 @@ window.mqCelebrate=function(o){
       setTimeout(()=>{try{const m=(leafletMarkers||[]).find(x=>x.getLatLng&&Math.abs(x.getLatLng().lat-lat)<1e-6&&Math.abs(x.getLatLng().lng-lng)<1e-6&&x.getPopup&&x.getPopup());if(m&&o.popup)m.openPopup()}catch(e){}},700)}});
   if(o.msg)setTimeout(()=>{try{toast(o.msg)}catch(e){}},350);
   try{if(window.mqSheet&&mqSheet.sync)setTimeout(()=>mqSheet.sync(),600)}catch(e){}};
+/* Edits of a place you added: send them to everyone (kept and retried until the server has them) */
+const EQ='mq-place-edits',eqGet=()=>{try{return JSON.parse(localStorage.getItem(EQ)||'{}')}catch(e){return{}}},eqSet=o=>{try{localStorage.setItem(EQ,JSON.stringify(o))}catch(e){}};
+function queueEdit(p){const q=eqGet();q[p.id]={id:p.id,name:p.name,type:p.type,posterSize:p.posterSize,address:p.address||'',lat:p.lat,lng:p.lng,spot:p.spot||'',notes:p.notes||''};eqSet(q);flushEdits()}
+let fl=false;
+async function flushEdits(){if(fl||!state.user||!navigator.onLine||!window.mqPost)return;const q=eqGet(),ids=Object.keys(q);if(!ids.length)return;fl=true;
+  try{for(const id of ids){const r=await mqPost({action:'placeEdit',player:{code:state.user.code,name:state.user.name},place:q[id]});
+    if(r&&(r.ok||/not found|Only the player/i.test(r.error||''))){const c=eqGet();delete c[id];eqSet(c)}}}catch(e){}finally{fl=false}}
+setInterval(flushEdits,20000);setTimeout(flushEdits,5000);
 /* New place: needs a pin; try the address first, never save a place that cannot be shown on the map */
 const _snp=saveNewPlace;
 saveNewPlace=function(form){
   const edit=!!form.dataset.edit;
   const hasPin=()=>mapDraft&&Number.isFinite(+mapDraft.lat)&&Number.isFinite(+mapDraft.lng)&&mapDraft.lat!==null;
   const run=()=>{const n0=state.places.length;_snp(form);
+    if(edit){const p=state.places.find(x=>x.id===form.dataset.edit);if(p&&!p.retired&&!/^seed-/.test(p.id))queueEdit(p)}
     if(!edit&&state.places.length>n0){const p=state.places[state.places.length-1];
       mqCelebrate({kind:'place',lat:p.lat,lng:p.lng,popup:true,msg:`✨ ${p.name} is now on the map!`})}};
   if(edit||hasPin()){run();return}

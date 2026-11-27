@@ -30,7 +30,7 @@ function applyRemote(r){
   if(r.places){const sy=S();const remote=new Map(r.places.map(p=>[String(p.id),p]));
     r.places.forEach(p=>{const id=String(p.id);let l=state.places.find(x=>x.id===id);
       const f={name:String(p.name),type:String(p.type),posterSize:String(p.posterSize||'A4'),address:String(p.address||''),lat:num(p.lat),lng:num(p.lng),spot:String(p.spot||''),notes:String(p.notes||''),retired:false,remote:true,verified:p.verified!==false,serverAt:Date.parse(p.updatedAt)||0};
-      if(l)Object.assign(l,f);else state.places.push({id,discoverer:String(p.addedBy||'Zirkus Mond'),createdAt:Date.parse(p.updatedAt)||Date.now(),closed:false,ratings:{},status:'needs',lastUpdated:Date.now(),...f})});
+      if(l){let pend=false;try{pend=!!JSON.parse(localStorage.getItem('mq-place-edits')||'{}')[id]}catch(e){}if(pend){l.remote=true;l.verified=f.verified;l.serverAt=f.serverAt}else Object.assign(l,f)}else state.places.push({id,discoverer:String(p.addedBy||'Zirkus Mond'),createdAt:Date.parse(p.updatedAt)||Date.now(),closed:false,ratings:{},status:'needs',lastUpdated:Date.now(),...f})});
     state.places.forEach(p=>{if((p.remote||/^seed-/.test(p.id))&&!remote.has(p.id)){p.retired=true}})}
   if(r.news){state.newsPages=[...r.news.map(n=>({id:'sheet-'+n.id,title:String(n.title),body:String(n.body),type:String(n.type||'new flyers'),image:n.image||svgData('#f6bd4e'),sheet:true})),...state.newsPages.filter(n=>!n.demo&&!n.sheet)];state.newsSeeded=true}
   applied=true;
@@ -55,7 +55,7 @@ async function sync(){
   try{
     const entries=(state.history||[]).filter(h=>h.at>sy.lastAt&&!/^(grant)/.test(h.type)).slice(0,200);
     const reds=(state.redemptionRequests||[]).filter(r=>r.type==='reward'&&r.playerCode===state.user.code&&isPending(r)&&!sy.reqs.includes(r.id)).map(r=>({id:r.id,item:r.name,cost:r.cost,category:r.category}));
-    const pls=(state.places||[]).filter(p=>!p.remote&&!/^seed-/.test(p.id)&&p.discoverer===state.user.name&&!p.retired&&!sy.places.includes(p.id)).slice(0,5);
+    const pls=(state.places||[]).filter(p=>!p.remote&&!/^seed-/.test(p.id)&&!p.retired&&!sy.places.includes(p.id)&&(p.discoverer===state.user.name||p.discoverer===state.user.code||!p.discoverer||p.mine)).slice(0,5);
     const pks=(state.pickupRequests||[]).filter(r=>r.awaiting&&r.status==='pending'&&r.playerCode===String(state.user.code)&&!sy.pk.includes(r.id)).slice(0,5);
     const res=await post({action:'sync',player:snapshot(),snap:window.mqEcon&&mqEcon.snap(),pickups:pks.map(r=>({id:r.id,flyers:r.quantities.flyers,posters:r.quantities.posters,stickers:r.quantities.stickers})),entries:entries.map(h=>({id:h.id,type:h.type,label:h.label,amount:h.amount,at:new Date(h.at).toISOString()})),redemptions:reds,places:pls.map(p=>({id:p.id,name:p.name,type:p.type,posterSize:p.posterSize,address:p.address,lat:p.lat,lng:p.lng,spot:p.spot,notes:p.notes}))});
     if(res&&res.ok){if(entries.length)sy.lastAt=Math.max(...entries.map(h=>h.at));reds.forEach(r=>sy.reqs.push(r.id));pks.forEach(r=>sy.pk.push(r.id));pls.forEach(p=>sy.places.push(p.id));
@@ -107,15 +107,16 @@ pickup=function(){_pickup();
   if(window.mqQrCard)f.parentNode.appendChild(window.mqQrCard())};
 
 /* ---------- players online + shared locations (server side) ---------- */
-let rOnline=[],rSharing=[];
-window.mqPresence={online:()=>rOnline,sharing:()=>rSharing};
+let rOnline=[],rSharing=[];const PST={at:0,err:''};
+window.mqPresence={online:()=>rOnline,sharing:()=>rSharing,status:()=>PST};
 async function presence(extra){
   if(!state.user||!navigator.onLine)return;
   if(mqAgeU16())extra=undefined;
   try{const look={...playerSnapshot()};delete look.code;delete look.name;try{look.equipped=((state.accessories&&state.accessories.equipped)||[]).slice(0,12);look.gadgetsOn=((state.gadgets&&state.gadgets.equipped)||[]).slice(0,8)}catch(e){}
     const res=await post({action:'presenceSync',player:{code:state.user.code,name:state.user.name},look,...(extra||{})});
-    if(res&&res.ok){rOnline=res.online||[];rSharing=res.sharing||[];try{refreshPresenceList();if(leafletInstance)refreshMarkers();if(currentView==='players'&&window.playersScreen&&!document.querySelector('input:focus'))playersScreen()}catch(e){}}
-  }catch(e){}
+    if(res&&res.ok){PST.at=Date.now();PST.err='';rOnline=res.online||[];rSharing=res.sharing||[];try{refreshPresenceList();if(leafletInstance)refreshMarkers();if(currentView==='players'&&window.playersScreen&&!document.querySelector('input:focus'))playersScreen()}catch(e){}}
+    else PST.err=(res&&res.error)||'The server did not answer.';
+  }catch(e){PST.err=e&&e.message?e.message:'No connection.'}
 }
 const _live=livePresence;
 livePresence=function(){if(mqAgeU16())return [];const m=new Map();
@@ -140,7 +141,7 @@ stopLocationShare=function(){_stop();presence({stop:true})};
 setInterval(()=>{if(document.hidden||!state.user)return;
   const mine=livePresence().find(x=>!x.remote&&String(x.code)===String(state.user.code));
   if(mine&&navigator.geolocation)navigator.geolocation.getCurrentPosition(p=>{try{const e={...mine,lat:p.coords.latitude,lng:p.coords.longitude,updatedAt:Date.now()};localStorage.setItem(presenceKey(mine.code),JSON.stringify(e))}catch(x){}presence({lat:p.coords.latitude,lng:p.coords.longitude})},()=>presence(),{timeout:8000,maximumAge:60000});
-  else presence()},30000);
+  else presence()},15000);
 setTimeout(presence,2500);
 
 
@@ -184,10 +185,10 @@ const _save=save;let t=null;
 save=function(){const r=_save.apply(this,arguments);clearTimeout(t);t=setTimeout(sync,4000);return r};
 async function cycle(){await loadConfig();await sync();await pull();if(applied)refreshView()}
 cycle();
-document.addEventListener('visibilitychange',()=>{if(!document.hidden)cycle()});
+document.addEventListener('visibilitychange',()=>{if(!document.hidden){cycle();setTimeout(presence,300)}});
 setInterval(async()=>{if(document.hidden||!state.user)return;
   const sig=()=>JSON.stringify((state.places||[]).map(p=>[p.id,p.lat,p.lng,!!p.retired,p.name]));const before=sig();
   try{await loadConfig();await sync();await pull()}catch(e){}
-  if(sig()!==before){try{refreshMarkers()}catch(e){}if(currentView==='places')refreshView()}},30000);
+  if(sig()!==before){try{refreshMarkers()}catch(e){}if(currentView==='places')refreshView()}},20000);
 window.mqSheet={sync,pull,loadConfig,presence};
 })();
